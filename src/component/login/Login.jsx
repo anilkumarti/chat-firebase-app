@@ -28,6 +28,7 @@ const Login = () => {
     const { email, password } = Object.fromEntries(formData);
     try { 
        signInWithEmailAndPassword(auth, email, password)
+       toast.success("login successfully")
     } catch (error) {
       console.log("Error occured in sigining in", error);
       toast.error(error);
