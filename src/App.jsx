@@ -9,23 +9,23 @@ import { auth } from "./lib/Firebase";
 import { useUserStore } from "./lib/UserStore";
 
 const App = () => {
-  const { currentUser, isLoading, fetchUserinfo} = useUserStore();
+  const { currentUser, isLoading, fetchUserinfo,clearUser } = useUserStore();
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
-      if(user) {
-        fetchUserinfo(user.uid)
-      }
-      else {
-        console.log("user not found")
+      if (user) {
+        fetchUserinfo(user.uid);
+      } else {
+        clearUser();
+        console.log("user not found");
       }
     });
-   
+
     return () => {
       unsub();
     };
-  }, [fetchUserinfo]);
-console.log("current user", currentUser);
-if (isLoading) return <div className="loading">Loading....</div>;
+  }, [fetchUserinfo,clearUser]);
+  console.log("current user", currentUser);
+  if (isLoading) return <div className="loading">Loading....</div>;
   return (
     <div className="container">
       {currentUser ? (
