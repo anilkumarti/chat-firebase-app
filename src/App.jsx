@@ -10,6 +10,7 @@ import { useUserStore } from "./lib/UserStore";
 
 const App = () => {
   const { currentUser, isLoading, fetchUserinfo,clearUser } = useUserStore();
+  const {chatId}=useUserStore()
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -30,9 +31,9 @@ const App = () => {
     <div className="container">
       {currentUser ? (
         <>
-          <List />
-          <Chat />
-          <Detail />
+           <List />
+          { chatId  && <Chat />}
+           {chatId && <Detail />}
         </>
       ) : (
         <Login />

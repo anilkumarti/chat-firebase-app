@@ -7,6 +7,7 @@ import {
   getDocs,
   query,
   serverTimestamp,
+  getDoc,
   setDoc,
   where,
   updateDoc
@@ -36,6 +37,13 @@ const AddUser = () => {
     const chatRef = collection(db, "chats");
     const userChatsRef = collection(db, "userchats");
     try {
+      const currentUserDoc = await getDoc(doc(userChatsRef, currentUser.id));
+      const existingChat = currentUserDoc.data()?.chats.find(chat => chat.receiverId === user.id);
+
+      if (existingChat) {
+        console.log("Chat already exists");
+        return;
+      }
       const newChatRef = doc(chatRef);
       await setDoc(newChatRef, {
         createdAt: serverTimestamp(),
@@ -46,7 +54,7 @@ const AddUser = () => {
         chats: arrayUnion({
           chatId: newChatRef.id,
           lastMessage: "",
-          recieverId: currentUser.id,
+          receiverId: currentUser.id,
           updatedAt: Date.now(),
         }),
       });
@@ -54,7 +62,7 @@ const AddUser = () => {
         chats: arrayUnion({
           chatId: newChatRef.id,
           lastMessage: "",
-          recieverId: user.id,
+          receiverId: user.id,
           updatedAt: Date.now(),
         }),
       });
