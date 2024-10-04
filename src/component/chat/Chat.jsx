@@ -12,11 +12,17 @@ import { db } from "../../lib/Firebase";
 import { useChatStore } from "../../lib/chatStore";
 import { useUserStore } from "../../lib/UserStore";
 import { toast } from "react-toastify";
+import upload from "../../lib/Upload";
 const Chat = () => {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+  const [img, setImg] = useState({
+    file: null,
+    url: "",
+  });
   const [chat, setChat] = useState();
-  const { chatId, user } = useChatStore();
+  const { chatId, user, isCurrentUserBlocked, isRecieverBlocked } =
+    useChatStore();
   const { currentUser } = useUserStore();
 
   const endRef = useRef(null);
@@ -34,26 +40,40 @@ const Chat = () => {
       };
     });
   }, [chatId]);
+
+  const handleImg = (e) => {
+    if (e.target.files[0]) {
+      setImg({
+        file: e.target.files[0],
+        url: URL.createObjectURL(e.target.files[0]),
+      });
+    }
+  };
   const handleSend = async () => {
-    if (text ==="") {
+    if (text === "") {
       console.log("empty text in chat entered");
-      toast.warning("Empty chat")
+      toast.warning("Empty chat");
       return;
     }
+    let imgUrl = null;
 
     try {
+      if (img.file) {
+        imgUrl = await upload(img.file);
+      }
       await updateDoc(doc(db, "chats", chatId), {
         messages: arrayUnion({
           senderId: currentUser.id,
           text,
           createdAt: new Date(),
+          ...(imgUrl && { img: imgUrl }),
         }),
       });
 
       const userIDs = [currentUser.id, user.id];
       userIDs.forEach(async (id) => {
-        const userChatsRef =  doc(db, "userchats", id);
-        
+        const userChatsRef = doc(db, "userchats", id);
+
         const userChatsSnapshot = await getDoc(userChatsRef);
         if (userChatsSnapshot.exists()) {
           const userChatsData = userChatsSnapshot.data();
@@ -72,15 +92,20 @@ const Chat = () => {
     } catch (error) {
       console.log(error);
     }
+    setImg({
+      file: null,
+      url: "",
+    });
+    setText("");
   };
-  console.log("text will be ",)
+  console.log("text will be ");
   return (
     <div className="chat">
       <div className="top">
         <div className="user">
-          <img src="./avatar.png" alt="avatar logo" />
+          <img src={user?.avatar || "./avatar.png"} alt="avatar logo" />
           <div className="texts">
-            <span> ANil Kumar</span>
+            <span>{user?.username}</span>
             <p>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
           </div>
         </div>
@@ -92,8 +117,12 @@ const Chat = () => {
       </div>
       <div className="center">
         {chat?.messages?.map((message) => (
-          <div className="message own" key={message?.createdAt}>
-           
+          <div
+            className={
+              message.senderId === currentUser?.id ? "message own" : "message"
+            }
+            key={message?.createdAt}
+          >
             <div className="texts">
               {message.img && <img src={message.img} alt="image" />}
               <p>{message.text}</p>
@@ -101,19 +130,35 @@ const Chat = () => {
             </div>
           </div>
         ))}
+        {img.url && (
+          <div className="message own">
+            <div className="texts">
+              <img src={img.url} alt="image" />
+            </div>
+          </div>
+        )}
         <div ref={endRef}> </div>
       </div>
       <div className="bottom">
         <div className="icons">
-          <img src="./img.png" alt="image logo" />
+          <label htmlFor="file">
+            <img src="./img.png" alt="image logo" />
+          </label>
+          <input
+            type="file"
+            id="file"
+            style={{ display: "none" }}
+            onChange={handleImg}
+          />
           <img src="./camera.png" alt="camera logo" />
           <img src="./mic.png" alt="mic logo" />
         </div>
         <input
           type="text"
-          placeholder="Type a message"
+          placeholder={(isCurrentUserBlocked || isRecieverBlocked) ? "You cannot send a message": "Type a message..."}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          disabled={isCurrentUserBlocked || isRecieverBlocked}
         />
         <div className="emoji">
           <img
@@ -125,7 +170,11 @@ const Chat = () => {
             <EmojiPicker open={open} onEmojiClick={handleEmoji} />
           </div>
         </div>
-        <button className="sendButton" onClick={handleSend}>
+        <button
+          className="sendButton"
+          onClick={handleSend}
+          disabled={isCurrentUserBlocked || isRecieverBlocked}
+        >
           Send
         </button>
       </div>
