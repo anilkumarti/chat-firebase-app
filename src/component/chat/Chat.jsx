@@ -1,14 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
 import "./Chat.css";
-import { doc, onSnapshot } from "firebase/firestore";
+import {
+  arrayUnion,
+  doc,
+  getDoc,
+  onSnapshot,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "../../lib/Firebase";
 import { useChatStore } from "../../lib/chatStore";
+import { useUserStore } from "../../lib/UserStore";
+import { toast } from "react-toastify";
 const Chat = () => {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [chat, setChat] = useState();
-  const { chatId } = useChatStore();
+  const { chatId, user } = useChatStore();
+  const { currentUser } = useUserStore();
+
   const endRef = useRef(null);
   useEffect(() => endRef.current?.scrollIntoView({ behaviour: "smooth" }), []);
 
@@ -17,7 +27,6 @@ const Chat = () => {
     setOpen(false);
   };
   useEffect(() => {
-    if (!chatId) return;
     const unsub = onSnapshot(doc(db, "chats", chatId), (res) => {
       setChat(res.data());
       return () => {
@@ -25,7 +34,46 @@ const Chat = () => {
       };
     });
   }, [chatId]);
-  console.log("this is chat", chat);
+  const handleSend = async () => {
+    if (text ==="") {
+      console.log("empty text in chat entered");
+      toast.warning("Empty chat")
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, "chats", chatId), {
+        messages: arrayUnion({
+          senderId: currentUser.id,
+          text,
+          createdAt: new Date(),
+        }),
+      });
+
+      const userIDs = [currentUser.id, user.id];
+      userIDs.forEach(async (id) => {
+        const userChatsRef =  doc(db, "userchats", id);
+        
+        const userChatsSnapshot = await getDoc(userChatsRef);
+        if (userChatsSnapshot.exists()) {
+          const userChatsData = userChatsSnapshot.data();
+          const chatIndex = userChatsData.chats.findIndex(
+            (c) => c.chatId === chatId
+          );
+          userChatsData.chats[chatIndex].lastMessage = text;
+          userChatsData.chats[chatIndex].isSeen =
+            id === currentUser.id ? true : false;
+          userChatsData.chats[chatIndex].updatedAt = Date.now();
+          await updateDoc(userChatsRef, {
+            chats: userChatsData.chats,
+          });
+        }
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  console.log("text will be ",)
   return (
     <div className="chat">
       <div className="top">
@@ -43,45 +91,16 @@ const Chat = () => {
         </div>
       </div>
       <div className="center">
-        <div className="message">
-          <img src="./avatar.png" alt="avatar logo" />
-          <div className="texts">
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Quaerat,
-              eum.
-            </p>
-            <span> 1 min ago</span>
+        {chat?.messages?.map((message) => (
+          <div className="message own" key={message?.createdAt}>
+           
+            <div className="texts">
+              {message.img && <img src={message.img} alt="image" />}
+              <p>{message.text}</p>
+              {/* <span>{message.createdAt}</span> */}
+            </div>
           </div>
-        </div>
-        <div className="message own">
-          <div className="texts">
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Quaerat,
-              eum.
-            </p>
-            <span> 1 min ago</span>
-          </div>
-        </div>
-        <div className="message">
-          <img src="./avatar.png" alt="avatar logo" />
-          <div className="texts">
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Quaerat,
-              eum.
-            </p>
-            <span> 1 min ago</span>
-          </div>
-        </div>
-        <div className="message own">
-          <div className="texts">
-            <img src="https://picsum.photos/300" alt="" />
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Quaerat,
-              eum.
-            </p>
-            <span> 1 min ago</span>
-          </div>
-        </div>
+        ))}
         <div ref={endRef}> </div>
       </div>
       <div className="bottom">
@@ -106,7 +125,9 @@ const Chat = () => {
             <EmojiPicker open={open} onEmojiClick={handleEmoji} />
           </div>
         </div>
-        <button className="sendButton"> Send</button>
+        <button className="sendButton" onClick={handleSend}>
+          Send
+        </button>
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../../../lib/Firebase";
 import { useUserStore } from "../../../../lib/UserStore";
+import { toast } from "react-toastify";
 const AddUser = () => {
   const [user, setUser] = useState(null);
   const { currentUser } = useUserStore();
@@ -42,6 +43,7 @@ const AddUser = () => {
 
       if (existingChat) {
         console.log("Chat already exists");
+        toast.warning("Chat already exists")
         return;
       }
       const newChatRef = doc(chatRef);
