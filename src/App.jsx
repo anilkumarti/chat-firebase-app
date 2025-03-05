@@ -8,12 +8,14 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./lib/Firebase";
 import { useUserStore } from "./lib/UserStore";
 import { useChatStore } from "./lib/chatStore";
+import AddUser from "./component/list/ChatList/addUser/AddUser";
 
 const App = () => {
   const { currentUser, isLoading, fetchUserinfo,clearUser } = useUserStore();
   const {chatId}=useChatStore();
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
+      console.log('user in App', user)
       if (user) {
         fetchUserinfo(user.uid);
       } else {
@@ -26,13 +28,17 @@ const App = () => {
       unsub();
     };
   }, [fetchUserinfo,clearUser]);
-  // console.log("current user", currentUser);
+   console.log("chat Id in app", chatId);
   if (isLoading) return <div className="loading">Loading....</div>;
   return (
     <div className="container">
+   
       {currentUser ? (
         <>
            <List />
+       
+           {/* <Chat/>*/}
+           
           { chatId  && <Chat />}
            {chatId && <Detail />}
         </>

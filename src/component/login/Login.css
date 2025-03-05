@@ -4,64 +4,114 @@
   display: flex;
   align-items: center;
   gap: 100px;
-  .item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    form {
-      display: flex;
-      flex-direction: column;
+}
 
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      input {
-        padding: 20px;
-        border: none;
-        outline: none;
-        background-color: rgba(17, 25, 40, 0.6);
-        color: white;
-        border-radius: 5px;
-      }
-      label {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        cursor: pointer;
-        text-decoration: underline;
-        img {
-          width: 50px;
-          height: 50px;
-          border-radius: 10px;
-          object-fit: cover;
-          opacity: 0.6;
-        }
-      }
-      button {
-        width: 100%;
-        padding: 20px;
-        border: none;
-        background-color: #1f8ef1;
-        color: white;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: 500;
-        &:disabled {
-          cursor: not-allowed;
-          background-color: #1f8ef1;
-        }
-        &:hover {
-          background-color: #05335c;
-        }
-      }
-    }
-  }
-  .separator {
+.login .item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.login .item form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.login .item form input {
+  padding: 20px;
+  border: none;
+  outline: none;
+  background-color: rgba(17, 25, 40, 0.6);
+  color: white;
+  border-radius: 5px;
+  width: 100%; /* Ensure inputs take full width */
+}
+
+.login .item form label {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.login .item form label img {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  object-fit: cover;
+  opacity: 0.6;
+}
+
+.login .item form button {
+  width: 100%;
+  padding: 20px;
+  border: none;
+  background-color: #1f8ef1;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.login .item form button:disabled {
+  cursor: not-allowed;
+  background-color: #1f8ef1;
+}
+
+.login .item form button:hover {
+  background-color: #05335c;
+}
+
+.login .separator {
   height: 80%;
   width: 2px;
   background-color: #dddddd35;
+}
+
+/* Responsive Styles for Tablets and Smaller Devices */
+@media (max-width: 768px) {
+  .login {
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .login .item {
+    width: 100%;
+    max-width: 400px; /* Optional: limits width for better readability */
+  }
+
+  .login .separator {
+    display: none; /* Hide separator in vertical layout */
+  }
+
+  .login .item form input,
+  .login .item form button {
+    padding: 15px; /* Reduce padding for smaller screens */
+  }
+
+  .login .item form label img {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Responsive Styles for Very Small Screens (e.g., Mobile) */
+@media (max-width: 480px) {
+  .login .item form input,
+  .login .item form button {
+    padding: 10px; /* Further reduce padding */
+  }
+
+  .login .item form label img {
+    width: 30px;
+    height: 30px;
   }
 }

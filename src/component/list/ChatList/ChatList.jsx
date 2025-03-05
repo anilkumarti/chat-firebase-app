@@ -6,25 +6,32 @@ import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../../../lib/Firebase";
 
 import { useChatStore } from "../../../lib/chatStore";
-
+   
 const ChatList = () => {
   const [chats, setchats] = useState([]);
-  const [addMode, setAddMode] = useState(false);
+  const [addMode, setAddMode] = useState(true);
   const [input, setInput] = useState("");
   const { currentUser } = useUserStore();
-  const { changeChat } = useChatStore();
+  const { changeChat,chatId } = useChatStore();
+ 
 
+  
+
+ 
   useEffect(() => {
-    if (!currentUser.id) return;
+    
+    
     const unSub = onSnapshot(
       doc(db, "userchats", currentUser.id),
       async (res) => {
-        const items = res.data()?.chats || [];
+        const items = res.data().chats;
+        console.log('jingo ji',items)
         const promises = items.map(async (item) => {
           const userDocRef = doc(db, "users", item.receiverId);
           const userDocSnap = await getDoc(userDocRef);
-          const user = userDocSnap.data();
-          return { ...item, user };
+          const user = userDocSnap.exists() ? userDocSnap.data() : null;
+         
+          return { ...item, user};
         });
         const chatData = await Promise.all(promises);
         const uniqueChats = new Map();
@@ -55,6 +62,8 @@ const ChatList = () => {
         chats: userChats,
       });
       changeChat(chat.chatId, chat.user);
+
+      console.log("Updated chatId:", useChatStore.getState().chatId); 
     } catch (error) {
       console.log(error);
     }

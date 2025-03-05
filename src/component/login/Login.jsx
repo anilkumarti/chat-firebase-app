@@ -86,7 +86,7 @@ const Login = () => {
             type="file"
             id="file"
             style={{ display: "none" }}
-            onClick={handleAvatar}
+            onChange={handleAvatar}
           />
           <input type="text" name="username" placeholder="Enter username" />
           <input type="email" name="email" placeholder="Enter email" />

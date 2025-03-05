@@ -21,12 +21,11 @@ const Chat = () => {
     url: "",
   });
   const [chat, setChat] = useState();
-  const { chatId, user, isCurrentUserBlocked, isRecieverBlocked } =
-    useChatStore();
+  const { chatId, user, isCurrentUserBlocked, isRecieverBlocked } =useChatStore();
   const { currentUser } = useUserStore();
-
+  console.log("the chatId in Chat will be " ,chatId)
   const endRef = useRef(null);
-  useEffect(() => endRef.current?.scrollIntoView({ behaviour: "smooth" }), []);
+  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), []);
 
   const handleEmoji = (e) => {
     setText((prev) => prev + e.emoji);
@@ -34,11 +33,14 @@ const Chat = () => {
   };
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "chats", chatId), (res) => {
+       console.log("unsub",unsub)
       setChat(res.data());
-      return () => {
-        unsub();
-      };
+      
     });
+
+    return () => {
+      unsub();
+    };
   }, [chatId]);
 
   const handleImg = (e) => {
@@ -98,7 +100,7 @@ const Chat = () => {
     });
     setText("");
   };
-  console.log("text will be ");
+ ;
   return (
     <div className="chat">
       <div className="top">

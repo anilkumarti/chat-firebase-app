@@ -5,6 +5,7 @@
   font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
     "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
 }
+
 body {
   background-image: url("/bg.jpg");
   display: flex;
@@ -13,13 +14,39 @@ body {
   height: 100vh;
   color: white;
 }
- .container{
-width: 80vw;
-height: 90vh;
-background-color: rgb(17, 25, 40,0.75);
-backdrop-filter: blur(19px) saturate(180%);
-border-radius: 12px;
-border: 1px solid rgba(255, 255, 255, 0.125);
-display: flex;
 
+.container {
+  width: 80vw;
+  height: 90vh;
+  background-color: rgba(17, 25, 40, 0.75);
+  backdrop-filter: blur(19px) saturate(180%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.125);
+  display: flex;
+}
+
+/* Responsive Styles for Tablets and Smaller Devices (max-width: 768px) */
+@media (max-width: 768px) {
+  .container {
+    width: 90vw;
+    height: auto;
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .container > * {
+    width: 100%;
+  }
+}
+
+
+@media (max-width: 480px) {
+  .container {
+    width: 100vw;
+    padding: 10px;
+  }
+
+  body {
+    font-size: 14px; 
+  }
 }
