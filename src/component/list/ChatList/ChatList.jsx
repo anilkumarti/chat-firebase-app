@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from "react";
 import "./ChatList.css";
+
 import AddUser from "./addUser/AddUser";
 import { useUserStore } from "../../../lib/UserStore";
 import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../../../lib/Firebase";
 
 import { useChatStore } from "../../../lib/chatStore";
+
    
 const ChatList = () => {
   const [chats, setchats] = useState([]);
-  const [addMode, setAddMode] = useState(true);
+  const [filterChats, setFilterChats] = useState([]);
+  const [addMode, setAddMode] = useState(false);
   const [input, setInput] = useState("");
   const { currentUser } = useUserStore();
   const { changeChat,chatId } = useChatStore();
@@ -20,12 +23,13 @@ const ChatList = () => {
  
   useEffect(() => {
     
-    
+    if (!currentUser?.id) return;
+
     const unSub = onSnapshot(
       doc(db, "userchats", currentUser.id),
       async (res) => {
         const items = res.data().chats;
-        console.log('jingo ji',items)
+     
         const promises = items.map(async (item) => {
           const userDocRef = doc(db, "users", item.receiverId);
           const userDocSnap = await getDoc(userDocRef);
@@ -35,12 +39,32 @@ const ChatList = () => {
         });
         const chatData = await Promise.all(promises);
         const uniqueChats = new Map();
+
+        
         chatData.forEach((chat) => {
           uniqueChats.set(chat.chatId, chat);
         });
-        const uniqueChatArray = Array.from(uniqueChats.values());
+        const finalChats=Array.from(uniqueChats.values()).sort(
+          (a,b)=>(b.updatedAt-a.updatedAt)
+        );
+        const metaAIChat = {
+          chatId: "deepseek_ai", 
+          user: {
+            username: "AI Chatbot",
+            avatar: "./meta_ai.png", 
+            blocked: [],
+          },
+          lastMessage: "",
+          isSeen: true,
+          updatedAt: Infinity, 
+        };
+         setchats(()=> [metaAIChat, ...finalChats]);
+         setFilterChats(()=> [metaAIChat, ...finalChats])
+         
+        // const uniqueChatArray = Array.from(uniqueChats.values());
 
-        setchats(uniqueChatArray.sort((a, b) => b.updatedAt - a.updatedAt));
+        // setchats(uniqueChatArray.sort((a, b) => b.updatedAt - a.updatedAt));
+    
       }
     );
     return () => {
@@ -48,6 +72,12 @@ const ChatList = () => {
     };
   }, [currentUser.id]);
   const handleSelect = async (chat) => {
+    if (chat.chatId === "deepseek_ai") {
+      changeChat(chat.chatId, chat.user);
+      return; 
+    }
+  
+
     const userChats = chats.map((item) => {
       const { user, ...rest } = item;
       return rest;
@@ -68,9 +98,9 @@ const ChatList = () => {
       console.log(error);
     }
   };
-  const filteredChats = chats.filter((c) =>
-    c.user.username.toLowerCase().includes(input.toLowerCase())
-  );
+  // const filteredChats = chats.filter((c) =>
+  //   c.user.username.toLowerCase().includes(input.toLowerCase())
+  // );
   return (
     <div className="chatList">
       <div className="search">
@@ -89,7 +119,7 @@ const ChatList = () => {
           onClick={() => setAddMode((prev) => !prev)}
         />
       </div>
-      {filteredChats.map((chat) => (
+      {filterChats.map((chat) => (
         <div
           className="item"
           key={chat.chatId}
@@ -98,7 +128,7 @@ const ChatList = () => {
         >
           <img
             src={
-              chat.user.blocked.includes(currentUser.id)
+              chat.user?.blocked?.includes(currentUser.id)
                 ? "./avatar.png"
                 : chat.user.avatar || "./avatar.png"
             }
@@ -106,7 +136,7 @@ const ChatList = () => {
           />
           <div className="texts">
             <span>
-              {chat.user.blocked.includes(currentUser.id)
+              {chat.user?.blocked?.includes(currentUser.id)
                 ? "User"
                 : chat.user.username}
             </span>

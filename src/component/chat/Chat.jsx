@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
+import { fetchAIResponse } from "../../lib/FetchDeepseek";
 import "./Chat.css";
 import {
   arrayUnion,
@@ -23,7 +24,7 @@ const Chat = () => {
   const [chat, setChat] = useState();
   const { chatId, user, isCurrentUserBlocked, isRecieverBlocked } =useChatStore();
   const { currentUser } = useUserStore();
-  console.log("the chatId in Chat will be " ,chatId)
+  
   const endRef = useRef(null);
   useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), []);
 
@@ -33,7 +34,7 @@ const Chat = () => {
   };
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "chats", chatId), (res) => {
-       console.log("unsub",unsub)
+      
       setChat(res.data());
       
     });
@@ -63,6 +64,27 @@ const Chat = () => {
       if (img.file) {
         imgUrl = await upload(img.file);
       }
+      if (chatId === "deepseek_ai") {
+        const aiResponse = await fetchAIResponse(text);
+  
+        await updateDoc(doc(db, "chats", chatId), {
+          messages: arrayUnion(
+            {
+              senderId: currentUser.id,
+              text,
+              createdAt: new Date(),
+              ...(imgUrl && { img: imgUrl }),
+            },
+            {
+              senderId: "deepseek_ai",
+              text: aiResponse,
+              createdAt: new Date(),
+            }
+          ),
+        });
+      }
+
+      else {
       await updateDoc(doc(db, "chats", chatId), {
         messages: arrayUnion({
           senderId: currentUser.id,
@@ -71,7 +93,7 @@ const Chat = () => {
           ...(imgUrl && { img: imgUrl }),
         }),
       });
-
+    }
       const userIDs = [currentUser.id, user.id];
       userIDs.forEach(async (id) => {
         const userChatsRef = doc(db, "userchats", id);
@@ -100,7 +122,7 @@ const Chat = () => {
     });
     setText("");
   };
- ;
+ 
   return (
     <div className="chat">
       <div className="top">

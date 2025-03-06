@@ -41,6 +41,12 @@ const Login = () => {
     setLoading(true);
     const formData = new FormData(e.target);
     const { username, email, password } = Object.fromEntries(formData);
+    
+  if (!avatar.file) {
+    toast.error("Please upload an avatar image");
+    setLoading(false);
+    return;
+  }
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
       const imgUrl = await upload(avatar.file);
@@ -72,6 +78,10 @@ const Login = () => {
           <input type="password" name="password" placeholder="Enter password" />
           <button disabled={loading}>{loading ? "loading" : "Sign in"} </button>
         </form>
+        <p>sample login id: user@gmail.com  
+                 </p>
+                 <p> password: User1234</p>
+
       </div>
       <div className="separator"></div>
       <div className="item">
@@ -94,6 +104,7 @@ const Login = () => {
           <button disabled={loading}> {loading ? "loading" : "Signup"} </button>
         </form>
       </div>
+     
     </div>
   );
 };
