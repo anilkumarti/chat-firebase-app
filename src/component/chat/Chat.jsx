@@ -12,6 +12,14 @@ import CameraModal from "./CameraModal";
 
 const ICE = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
+const fmtCallDuration = (s) => {
+  if (!s) return "";
+  const h = Math.floor(s / 3600);
+  const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+  const sec = String(s % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${m}:${sec}` : `${m}:${sec}`;
+};
+
 const formatTime = (iso) => {
   if (!iso) return "";
   const d = new Date(iso);
@@ -182,13 +190,13 @@ const Chat = () => {
       ch.subscribe(async (status) => {
         if (status !== "SUBSCRIBED") return;
         chReady = true;
-        await ch.send({ type: "broadcast", event: "signal", payload: { type: "offer", from: currentUser.id, fromUser: currentUser, callType, offer: { type: offer.type, sdp: offer.sdp } } });
+        await ch.send({ type: "broadcast", event: "signal", payload: { type: "offer", from: currentUser.id, fromUser: currentUser, callType, offer: { type: offer.type, sdp: offer.sdp }, chatId } });
         for (const p of iceCandidateQueue) ch.send({ type: "broadcast", event: "signal", payload: p });
         iceCandidateQueue.length = 0;
       });
 
       setSignalCh(ch);
-      setPendingCall({ toUser: user, callType, peer, localStream, remoteStream });
+      setPendingCall({ toUser: user, callType, peer, localStream, remoteStream, chatId });
     } catch (err) {
       console.error("initiateCall:", err);
       toast.error("Could not start call — check microphone/camera permissions");
@@ -284,6 +292,32 @@ const Chat = () => {
       <div className="center">
         {messages.map((message, index) => {
           const isOwn = message.senderId === currentUser?.id;
+
+          /* ── Call event bubble ────────────────── */
+          if (message.type === "call_event") {
+            const isVideo = message.callType === "video";
+            const isMissed = message.status === "missed";
+            const isDeclined = message.status === "declined";
+            const statusIcon = isMissed || isDeclined ? "📵" : isVideo ? "📹" : "📞";
+            const label =
+              isMissed   ? `Missed ${isVideo ? "video" : "voice"} call` :
+              isDeclined ? `Declined call` :
+                           `${isVideo ? "Video" : "Voice"} call`;
+            return (
+              <div key={index} className={`callEventMsg${isMissed || isDeclined ? " callEventMissed" : ""}`}>
+                <span className="callEventIcon">{statusIcon}</span>
+                <div className="callEventBody">
+                  <span className="callEventLabel">{label}</span>
+                  {message.duration > 0 && (
+                    <span className="callEventDuration">{fmtCallDuration(message.duration)}</span>
+                  )}
+                </div>
+                <span className="callEventTime">{formatTime(message.createdAt)}</span>
+              </div>
+            );
+          }
+
+          /* ── Regular message ──────────────────── */
           return (
             <div className={isOwn ? "message own" : "message"} key={index}>
               {isGroupChat && !isOwn && (

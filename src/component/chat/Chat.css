@@ -380,3 +380,63 @@
   .chat .center .message { max-width: 78%; }
   .chat .center { padding: 16px 16px 8px; }
 }
+
+/* ── Call event bubbles ──────────────────────── */
+.callEventMsg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  align-self: center;
+  background: var(--bg-elevated, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--bd, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  padding: 8px 14px;
+  margin: 6px 0;
+  max-width: 320px;
+  width: fit-content;
+}
+
+.callEventMsg.callEventMissed {
+  background: rgba(229, 62, 62, 0.08);
+  border-color: rgba(229, 62, 62, 0.2);
+}
+
+.callEventIcon {
+  font-size: 18px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.callEventBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.callEventLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1, #e8eaf6);
+  white-space: nowrap;
+}
+
+.callEventMissed .callEventLabel {
+  color: #fc8181;
+}
+
+.callEventDuration {
+  font-size: 11px;
+  color: var(--t3, rgba(255, 255, 255, 0.38));
+  font-variant-numeric: tabular-nums;
+}
+
+.callEventTime {
+  font-size: 10.5px;
+  color: var(--t3, rgba(255, 255, 255, 0.35));
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: flex-end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

@@ -9,6 +9,7 @@ import { supabase } from "./lib/Supabase";
 import { useUserStore } from "./lib/UserStore";
 import { useChatStore } from "./lib/chatStore";
 import { useCallStore } from "./lib/callStore";
+import { saveCallEvent } from "./lib/callUtils";
 import CallModal from "./component/call/CallModal";
 
 const App = () => {
@@ -58,6 +59,7 @@ const App = () => {
               fromUser: payload.fromUser,
               callType: payload.callType,
               offer: payload.offer,
+              chatId: payload.chatId,
             });
             break;
 
@@ -81,10 +83,42 @@ const App = () => {
             break;
           }
 
-          case "call-end":
-          case "call-reject":
+          case "call-end": {
+            const { incomingCall: ic, activeCall: ac } = store;
+            if (ac?.chatId) {
+              // other side hung up during an active call — save history
+              await saveCallEvent(ac.chatId, {
+                callType: ac.callType,
+                status: "ended",
+                duration: payload.duration || 0,
+                initiatorId: payload.from,
+              });
+            } else if (ic?.chatId) {
+              // caller hung up before we answered — missed call
+              await saveCallEvent(ic.chatId, {
+                callType: ic.callType,
+                status: "missed",
+                duration: 0,
+                initiatorId: ic.fromUser.id,
+              });
+            }
             store.clearCall();
             break;
+          }
+
+          case "call-reject": {
+            const { pendingCall: pc } = store;
+            if (pc?.chatId) {
+              await saveCallEvent(pc.chatId, {
+                callType: pc.callType,
+                status: "declined",
+                duration: 0,
+                initiatorId: pc.toUser?.id,
+              });
+            }
+            store.clearCall();
+            break;
+          }
         }
       })
       .subscribe();
