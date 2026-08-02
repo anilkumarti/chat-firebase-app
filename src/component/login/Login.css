@@ -3,115 +3,144 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 100px;
-}
-
-.login .item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.login .item form {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: 20px;
 }
 
-.login .item form input {
-  padding: 20px;
-  border: none;
-  outline: none;
-  background-color: rgba(17, 25, 40, 0.6);
-  color: white;
-  border-radius: 5px;
-  width: 100%; /* Ensure inputs take full width */
-}
-
-.login .item form label {
+.auth-card {
   width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 8px 0;
+}
+
+.auth-card h2 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--t1);
+}
+
+.auth-card .subtitle {
+  font-size: 13px;
+  color: var(--t2);
+  margin-top: -12px;
+}
+
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-card form input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1px solid var(--bd);
+  outline: none;
+  background: var(--bg-input);
+  color: var(--t1);
+  border-radius: var(--r6);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color var(--t), background var(--t), box-shadow var(--t);
+}
+
+.auth-card form input::placeholder {
+  color: var(--t3);
+}
+
+.auth-card form input:focus {
+  border-color: var(--accent);
+  background: rgba(91,142,247,0.06);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.auth-card .avatar-label {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 14px;
   cursor: pointer;
-  text-decoration: underline;
+  padding: 10px 14px;
+  border: 1px dashed var(--bd2);
+  border-radius: var(--r6);
+  transition: border-color var(--t), background var(--t);
+  font-size: 13px;
+  color: var(--t2);
 }
 
-.login .item form label img {
-  width: 50px;
-  height: 50px;
-  border-radius: 10px;
+.auth-card .avatar-label:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--t1);
+}
+
+.auth-card .avatar-label img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   object-fit: cover;
-  opacity: 0.6;
+  border: 2px solid var(--bd2);
+  flex-shrink: 0;
 }
 
-.login .item form button {
+.auth-card .avatar-label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-card form button[type="submit"],
+.auth-card form button:not(.link-btn) {
   width: 100%;
-  padding: 20px;
+  padding: 13px;
   border: none;
-  background-color: #1f8ef1;
-  color: white;
-  border-radius: 5px;
+  background: var(--accent-sent);
+  color: #fff;
+  border-radius: var(--r6);
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: inherit;
+  margin-top: 4px;
+  transition: opacity var(--t), transform var(--t);
+  box-shadow: 0 2px 12px rgba(59,109,226,.3);
 }
 
-.login .item form button:disabled {
+.auth-card form button:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.auth-card form button:disabled {
   cursor: not-allowed;
-  background-color: #1f8ef1;
+  opacity: 0.5;
 }
 
-.login .item form button:hover {
-  background-color: #05335c;
+.auth-card .switch-hint {
+  font-size: 13px;
+  color: var(--t2);
+  text-align: center;
 }
 
-.login .separator {
-  height: 80%;
-  width: 2px;
-  background-color: #dddddd35;
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity var(--t);
 }
 
-/* Responsive Styles for Tablets and Smaller Devices */
-@media (max-width: 768px) {
-  .login {
-    flex-direction: column;
-    gap: 20px;
-    padding: 20px;
-  }
-
-  .login .item {
-    width: 100%;
-    max-width: 400px; /* Optional: limits width for better readability */
-  }
-
-  .login .separator {
-    display: none; /* Hide separator in vertical layout */
-  }
-
-  .login .item form input,
-  .login .item form button {
-    padding: 15px; /* Reduce padding for smaller screens */
-  }
-
-  .login .item form label img {
-    width: 40px;
-    height: 40px;
-  }
+.link-btn:hover {
+  opacity: 0.78;
 }
 
-/* Responsive Styles for Very Small Screens (e.g., Mobile) */
 @media (max-width: 480px) {
-  .login .item form input,
-  .login .item form button {
-    padding: 10px; /* Further reduce padding */
-  }
-
-  .login .item form label img {
-    width: 30px;
-    height: 30px;
+  .auth-card {
+    padding: 24px;
   }
 }

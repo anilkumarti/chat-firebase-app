@@ -1,0 +1,59 @@
+.cameraOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+  backdrop-filter: blur(4px);
+}
+
+.cameraModal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  background: rgba(17, 25, 40, 0.95);
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.cameraModal video {
+  width: 480px;
+  max-width: 90vw;
+  border-radius: 12px;
+  background: #000;
+  display: block;
+}
+
+.cameraControls {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.cameraControls button {
+  flex: 1;
+  padding: 11px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+
+.cameraControls button:hover { opacity: 0.85; }
+
+.cameraControls .cam-cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e8eaf6;
+}
+
+.cameraControls .cam-capture {
+  background: #5183fe;
+  color: white;
+}

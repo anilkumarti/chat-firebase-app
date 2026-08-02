@@ -1,54 +1,118 @@
 .addUser {
-    height: max-content;
-    width: max-content;
-    padding: 30px;
-    background-color: rgba(17, 25, 40, 0.788);
-    border-radius: 10px;
-    position: absolute;
-    top: 0 ;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: auto;
-    form {
-        display: flex;
-        gap: 20px;
-        input {
-            padding: 20px;
-            border-radius: 10px;
-            border: none;
-            outline: none;
-        }
-        button {
-            padding: 20px;
-            border-radius: 10px;
-            background-color: #1a73ed;
-            color: white;
-            cursor: pointer;
-        }
-    }
-    .user {
-        margin-top: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        .detail {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            img {
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-                object-fit: cover;
-            }
-        } 
-        button {
-            padding: 10px;
-            border-radius: 10px;
-            background-color: #1a73ed;
-            color: white;
-            cursor: pointer;
-        }
-    }
+  width: 340px;
+  padding: 24px;
+  background: var(--bg-sidebar);
+  border-radius: var(--r16);
+  border: 1px solid var(--bd2);
+  box-shadow: var(--sh-lg);
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+}
+
+.addUser form {
+  display: flex;
+  gap: 8px;
+}
+
+.addUser form input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: var(--r6);
+  border: 1px solid var(--bd);
+  outline: none;
+  background: var(--bg-input);
+  color: var(--t1);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color var(--t), background var(--t);
+  min-width: 0;
+}
+
+.addUser form input::placeholder {
+  color: var(--t3);
+}
+
+.addUser form input:focus {
+  border-color: var(--accent);
+  background: rgba(91,142,247,0.06);
+}
+
+.addUser form button {
+  padding: 10px 16px;
+  border-radius: var(--r6);
+  background: var(--accent-sent);
+  color: #fff;
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: opacity var(--t);
+  box-shadow: 0 2px 8px rgba(59,109,226,.25);
+}
+
+.addUser form button:hover {
+  opacity: 0.88;
+}
+
+.addUser .user {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--bd);
+  border-radius: var(--r10);
+}
+
+.addUser .user .detail {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.addUser .user .detail img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--bd2);
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+}
+
+.addUser .user .detail span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.addUser .user button {
+  padding: 8px 14px;
+  border-radius: var(--r6);
+  background: var(--accent-sent);
+  color: #fff;
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity var(--t);
+  box-shadow: 0 2px 8px rgba(59,109,226,.25);
+}
+
+.addUser .user button:hover {
+  opacity: 0.88;
 }

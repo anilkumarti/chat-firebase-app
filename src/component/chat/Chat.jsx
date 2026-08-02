@@ -1,193 +1,425 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { fetchAIResponse } from "../../lib/FetchDeepseek";
 import "./Chat.css";
-import {
-  arrayUnion,
-  doc,
-  getDoc,
-  onSnapshot,
-  updateDoc,
-} from "firebase/firestore";
-import { db } from "../../lib/Firebase";
+import { supabase } from "../../lib/Supabase";
 import { useChatStore } from "../../lib/chatStore";
 import { useUserStore } from "../../lib/UserStore";
+import { useCallStore } from "../../lib/callStore";
 import { toast } from "react-toastify";
 import upload from "../../lib/Upload";
+import CameraModal from "./CameraModal";
+
+const ICE = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+const formatTime = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday =
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear();
+  return isToday
+    ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString([], { weekday: "short", hour: "2-digit", minute: "2-digit" });
+};
+
 const Chat = () => {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
-  const [img, setImg] = useState({
-    file: null,
-    url: "",
-  });
-  const [chat, setChat] = useState();
-  const { chatId, user, isCurrentUserBlocked, isRecieverBlocked } =useChatStore();
+  const [img, setImg] = useState({ file: null, url: "" });
+  const [messages, setMessages] = useState([]);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+
+  const { chatId, user, isCurrentUserBlocked, isRecieverBlocked, triggerChatListRefresh } =
+    useChatStore();
   const { currentUser } = useUserStore();
-  
+  const { setPendingCall, setSignalCh } = useCallStore();
+
   const endRef = useRef(null);
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), []);
+  const mediaRecorderRef = useRef(null);
+  const recordingTimerRef = useRef(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    if (!chatId) return;
+    const isAI = chatId.startsWith("deepseek_ai_");
+    const fetchMessages = async () => {
+      const { data } = await supabase
+        .from("chats")
+        .select("messages")
+        .eq("id", chatId)
+        .single();
+      setMessages(data?.messages ?? []);
+    };
+    fetchMessages();
+    if (isAI) return;
+    const channel = supabase
+      .channel(`chat:${chatId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "chats", filter: `id=eq.${chatId}` },
+        (payload) => setMessages(payload.new.messages ?? [])
+      )
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [chatId]);
+
+  const updateUserChats = useCallback(
+    async (lastMessage) => {
+      if (!user?.id) return;
+      await Promise.all(
+        [currentUser.id, user.id].map(async (id) => {
+          const { data: row } = await supabase
+            .from("user_chats")
+            .select("*")
+            .eq("user_id", id)
+            .single();
+          const updatedChats = (row?.chats ?? []).map((c) =>
+            c.chatId === chatId
+              ? { ...c, lastMessage, isSeen: id === currentUser.id, updatedAt: Date.now() }
+              : c
+          );
+          await supabase
+            .from("user_chats")
+            .update({ chats: updatedChats })
+            .eq("user_id", id);
+        })
+      );
+      triggerChatListRefresh();
+    },
+    [chatId, currentUser?.id, user?.id, triggerChatListRefresh]
+  );
 
   const handleEmoji = (e) => {
     setText((prev) => prev + e.emoji);
     setOpen(false);
   };
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, "chats", chatId), (res) => {
-      
-      setChat(res.data());
-      
-    });
-
-    return () => {
-      unsub();
-    };
-  }, [chatId]);
 
   const handleImg = (e) => {
     if (e.target.files[0]) {
-      setImg({
-        file: e.target.files[0],
-        url: URL.createObjectURL(e.target.files[0]),
-      });
+      if (img.url) URL.revokeObjectURL(img.url);
+      setImg({ file: e.target.files[0], url: URL.createObjectURL(e.target.files[0]) });
     }
   };
+
+  const handleCameraCapture = (file) => {
+    if (img.url) URL.revokeObjectURL(img.url);
+    setImg({ file, url: URL.createObjectURL(file) });
+    setCameraOpen(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleMicToggle = async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        clearInterval(recordingTimerRef.current);
+        setRecordingTime(0);
+        setIsRecording(false);
+        if (!chatId || chatId.startsWith("deepseek_ai_")) return;
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const file = new File([blob], `voice_${Date.now()}.webm`, { type: "audio/webm" });
+        try {
+          const audioUrl = await upload(file);
+          const { data: current } = await supabase
+            .from("chats")
+            .select("messages")
+            .eq("id", chatId)
+            .single();
+          const newMsg = {
+            senderId: currentUser.id,
+            audio: audioUrl,
+            createdAt: new Date().toISOString(),
+          };
+          const updated = [...(current?.messages ?? []), newMsg];
+          const { error } = await supabase
+            .from("chats")
+            .update({ messages: updated })
+            .eq("id", chatId);
+          if (!error) {
+            setMessages(updated);
+            await updateUserChats("🎤 Voice message");
+          }
+        } catch {
+          toast.error("Failed to send voice message");
+        }
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingTimerRef.current = setInterval(
+        () => setRecordingTime((t) => t + 1),
+        1000
+      );
+    } catch {
+      toast.error("Microphone access denied");
+    }
+  };
+
+  const initiateCall = async (callType) => {
+    if (!user?.id || chatId?.startsWith("deepseek_ai_")) return;
+    try {
+      const localStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: callType === "video",
+      });
+      const remoteStream = new MediaStream();
+      const peer = new RTCPeerConnection(ICE);
+      localStream.getTracks().forEach((t) => peer.addTrack(t, localStream));
+      peer.ontrack = (e) =>
+        e.streams[0].getTracks().forEach((t) => remoteStream.addTrack(t));
+
+      const ch = supabase.channel(`calls:${user.id}`, {
+        config: { broadcast: { ack: false } },
+      });
+      const iceCandidateQueue = [];
+      let chReady = false;
+
+      peer.onicecandidate = (e) => {
+        if (!e.candidate) return;
+        const payload = {
+          type: "ice-candidate",
+          from: currentUser.id,
+          candidate: e.candidate.toJSON(),
+        };
+        if (chReady) {
+          ch.send({ type: "broadcast", event: "signal", payload });
+        } else {
+          iceCandidateQueue.push(payload);
+        }
+      };
+
+      const offer = await peer.createOffer();
+      await peer.setLocalDescription(offer);
+
+      ch.subscribe(async (status) => {
+        if (status !== "SUBSCRIBED") return;
+        chReady = true;
+        await ch.send({
+          type: "broadcast",
+          event: "signal",
+          payload: {
+            type: "offer",
+            from: currentUser.id,
+            fromUser: currentUser,
+            callType,
+            offer: { type: offer.type, sdp: offer.sdp },
+          },
+        });
+        for (const p of iceCandidateQueue) {
+          ch.send({ type: "broadcast", event: "signal", payload: p });
+        }
+        iceCandidateQueue.length = 0;
+      });
+
+      setSignalCh(ch);
+      setPendingCall({ toUser: user, callType, peer, localStream, remoteStream });
+    } catch (err) {
+      console.error("initiateCall:", err);
+      toast.error("Could not start call — check microphone/camera permissions");
+    }
+  };
+
   const handleSend = async () => {
-    if (text === "") {
-      console.log("empty text in chat entered");
-      toast.warning("Empty chat");
+    if (!text.trim() && !img.file) {
+      toast.warning("Empty message");
       return;
     }
     let imgUrl = null;
-
     try {
-      if (img.file) {
-        imgUrl = await upload(img.file);
-      }
-      if (chatId === "deepseek_ai") {
+      if (img.file) imgUrl = await upload(img.file);
+      const isAI = chatId.startsWith("deepseek_ai_");
+      if (isAI) {
         const aiResponse = await fetchAIResponse(text);
-  
-        await updateDoc(doc(db, "chats", chatId), {
-          messages: arrayUnion(
-            {
-              senderId: currentUser.id,
-              text,
-              createdAt: new Date(),
-              ...(imgUrl && { img: imgUrl }),
-            },
-            {
-              senderId: "deepseek_ai",
-              text: aiResponse,
-              createdAt: new Date(),
-            }
-          ),
-        });
-      }
-
-      else {
-      await updateDoc(doc(db, "chats", chatId), {
-        messages: arrayUnion({
+        const { data: current } = await supabase
+          .from("chats")
+          .select("messages")
+          .eq("id", chatId)
+          .single();
+        const updated = [
+          ...(current?.messages ?? []),
+          {
+            senderId: currentUser.id,
+            text,
+            createdAt: new Date().toISOString(),
+            ...(imgUrl && { img: imgUrl }),
+          },
+          { senderId: "deepseek_ai", text: aiResponse, createdAt: new Date().toISOString() },
+        ];
+        const { error } = await supabase
+          .from("chats")
+          .upsert({ id: chatId, messages: updated });
+        if (error) throw error;
+        setMessages(updated);
+      } else {
+        const { data: current } = await supabase
+          .from("chats")
+          .select("messages")
+          .eq("id", chatId)
+          .single();
+        const newMessage = {
           senderId: currentUser.id,
           text,
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
           ...(imgUrl && { img: imgUrl }),
-        }),
-      });
-    }
-      const userIDs = [currentUser.id, user.id];
-      userIDs.forEach(async (id) => {
-        const userChatsRef = doc(db, "userchats", id);
-
-        const userChatsSnapshot = await getDoc(userChatsRef);
-        if (userChatsSnapshot.exists()) {
-          const userChatsData = userChatsSnapshot.data();
-          const chatIndex = userChatsData.chats.findIndex(
-            (c) => c.chatId === chatId
-          );
-          userChatsData.chats[chatIndex].lastMessage = text;
-          userChatsData.chats[chatIndex].isSeen =
-            id === currentUser.id ? true : false;
-          userChatsData.chats[chatIndex].updatedAt = Date.now();
-          await updateDoc(userChatsRef, {
-            chats: userChatsData.chats,
-          });
-        }
-      });
+        };
+        const updated = [...(current?.messages ?? []), newMessage];
+        const { error } = await supabase
+          .from("chats")
+          .update({ messages: updated })
+          .eq("id", chatId);
+        if (error) throw error;
+        setMessages(updated);
+        await updateUserChats(text);
+      }
+      if (img.url) URL.revokeObjectURL(img.url);
+      setImg({ file: null, url: "" });
+      setText("");
     } catch (error) {
       console.log(error);
+      toast.error("Failed to send message");
     }
-    setImg({
-      file: null,
-      url: "",
-    });
-    setText("");
   };
- 
+
+  const fmtRecTime = () => {
+    const m = Math.floor(recordingTime / 60).toString().padStart(2, "0");
+    const s = (recordingTime % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  const isAIChat = chatId?.startsWith("deepseek_ai_");
+  const inputDisabled = isCurrentUserBlocked || isRecieverBlocked;
+
   return (
     <div className="chat">
       <div className="top">
         <div className="user">
-          <img src={user?.avatar || "./avatar.png"} alt="avatar logo" />
+          <img src={user?.avatar || "./avatar.png"} alt="avatar" />
           <div className="texts">
             <span>{user?.username}</span>
-            <p>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
           </div>
         </div>
         <div className="icons">
-          <img src="./phone.png" alt="icon logo" />
-          <img src="./video.png" alt="icon logo" />
-          <img src="./info.png" alt="icon logo" />
+          {!isAIChat && (
+            <>
+              <img
+                src="./phone.png"
+                alt="Voice call"
+                title="Voice call"
+                onClick={() => initiateCall("audio")}
+              />
+              <img
+                src="./video.png"
+                alt="Video call"
+                title="Video call"
+                onClick={() => initiateCall("video")}
+              />
+            </>
+          )}
+          <img src="./info.png" alt="info" />
         </div>
       </div>
+
       <div className="center">
-        {chat?.messages?.map((message) => (
+        {messages.map((message, index) => (
           <div
-            className={
-              message.senderId === currentUser?.id ? "message own" : "message"
-            }
-            key={message?.createdAt}
+            className={message.senderId === currentUser?.id ? "message own" : "message"}
+            key={index}
           >
             <div className="texts">
-              {message.img && <img src={message.img} alt="image" />}
-              <p>{message.text}</p>
-              {/* <span>{message.createdAt}</span> */}
+              {message.img && <img src={message.img} alt="attachment" />}
+              {message.audio && (
+                <audio controls src={message.audio} className="voiceMessage" />
+              )}
+              {message.text && <p>{message.text}</p>}
+              <span className="msgTime">{formatTime(message.createdAt)}</span>
             </div>
           </div>
         ))}
         {img.url && (
           <div className="message own">
             <div className="texts">
-              <img src={img.url} alt="image" />
+              <img src={img.url} alt="preview" />
             </div>
           </div>
         )}
-        <div ref={endRef}> </div>
+        <div ref={endRef} />
       </div>
+
       <div className="bottom">
         <div className="icons">
           <label htmlFor="file">
-            <img src="./img.png" alt="image logo" />
+            <img src="./img.png" alt="image" />
           </label>
           <input
             type="file"
             id="file"
             style={{ display: "none" }}
             onChange={handleImg}
+            accept="image/*"
           />
-          <img src="./camera.png" alt="camera logo" />
-          <img src="./mic.png" alt="mic logo" />
+          <img
+            src="./camera.png"
+            alt="camera"
+            title="Take photo"
+            onClick={() => !isAIChat && setCameraOpen(true)}
+            style={{ opacity: isAIChat ? 0.3 : undefined }}
+          />
+          <img
+            src="./mic.png"
+            alt="mic"
+            title={isRecording ? "Stop recording" : "Voice message"}
+            onClick={() => !isAIChat && handleMicToggle()}
+            className={isRecording ? "micActive" : ""}
+            style={{ opacity: isAIChat ? 0.3 : undefined }}
+          />
         </div>
-        <input
-          type="text"
-          placeholder={(isCurrentUserBlocked || isRecieverBlocked) ? "You cannot send a message": "Type a message..."}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          disabled={isCurrentUserBlocked || isRecieverBlocked}
-        />
+
+        {isRecording ? (
+          <div className="recordingBar">
+            <span className="recDot" />
+            <span className="recTime">{fmtRecTime()}</span>
+            <span className="recLabel">Tap mic to send</span>
+          </div>
+        ) : (
+          <input
+            type="text"
+            placeholder={
+              inputDisabled ? "You cannot send a message" : "Type a message..."
+            }
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={inputDisabled}
+          />
+        )}
+
         <div className="emoji">
           <img
             src="./emoji.png"
-            alt="emoji icon"
+            alt="emoji"
             onClick={() => setOpen((prev) => !prev)}
           />
           <div className="picker">
@@ -197,11 +429,18 @@ const Chat = () => {
         <button
           className="sendButton"
           onClick={handleSend}
-          disabled={isCurrentUserBlocked || isRecieverBlocked}
+          disabled={inputDisabled || isRecording}
         >
           Send
         </button>
       </div>
+
+      {cameraOpen && (
+        <CameraModal
+          onCapture={handleCameraCapture}
+          onClose={() => setCameraOpen(false)}
+        />
+      )}
     </div>
   );
 };

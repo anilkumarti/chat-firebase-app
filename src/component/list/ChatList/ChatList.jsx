@@ -1,111 +1,121 @@
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./ChatList.css";
-
 import AddUser from "./addUser/AddUser";
 import { useUserStore } from "../../../lib/UserStore";
-import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
-import { db } from "../../../lib/Firebase";
-
+import { supabase } from "../../../lib/Supabase";
 import { useChatStore } from "../../../lib/chatStore";
 
-   
+const formatListTime = (ts) => {
+  if (!ts || ts === Infinity) return "";
+  const d = new Date(typeof ts === "number" && ts < 1e12 ? ts * 1000 : ts);
+  if (isNaN(d)) return "";
+  const now = new Date();
+  const diffDays = Math.floor((now - d) / 86400000);
+  if (diffDays === 0) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (diffDays < 7) return d.toLocaleDateString([], { weekday: "short" });
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+};
+
 const ChatList = () => {
-  const [chats, setchats] = useState([]);
-  const [filterChats, setFilterChats] = useState([]);
+  const [chats, setChats] = useState([]);
   const [addMode, setAddMode] = useState(false);
   const [input, setInput] = useState("");
   const { currentUser } = useUserStore();
-  const { changeChat,chatId } = useChatStore();
- 
+  const { changeChat, chatListRefresh } = useChatStore();
 
-  
+  const buildChatList = useCallback(
+    async (row) => {
+      const items = row?.chats ?? [];
+      const enriched = await Promise.all(
+        items.map(async (item) => {
+          const { data: userData } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", item.receiverId)
+            .single();
+          return { ...item, user: userData };
+        })
+      );
+      const sorted = enriched.sort((a, b) => b.updatedAt - a.updatedAt);
+      const aiChat = {
+        chatId: `deepseek_ai_${currentUser.id}`,
+        user: { username: "AI Chatbot", avatar: "./meta_ai.png", blocked: [] },
+        lastMessage: "",
+        isSeen: true,
+        updatedAt: Infinity,
+      };
+      setChats([aiChat, ...sorted]);
+    },
+    [currentUser?.id]
+  );
 
- 
   useEffect(() => {
-    
     if (!currentUser?.id) return;
+    supabase
+      .from("user_chats")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .single()
+      .then(({ data }) => buildChatList(data));
+  }, [currentUser?.id, chatListRefresh, buildChatList]);
 
-    const unSub = onSnapshot(
-      doc(db, "userchats", currentUser.id),
-      async (res) => {
-        const items = res.data().chats;
-     
-        const promises = items.map(async (item) => {
-          const userDocRef = doc(db, "users", item.receiverId);
-          const userDocSnap = await getDoc(userDocRef);
-          const user = userDocSnap.exists() ? userDocSnap.data() : null;
-         
-          return { ...item, user};
-        });
-        const chatData = await Promise.all(promises);
-        const uniqueChats = new Map();
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const channel = supabase
+      .channel(`user_chats:${currentUser.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_chats",
+          filter: `user_id=eq.${currentUser.id}`,
+        },
+        ({ new: newRow }) => buildChatList(newRow)
+      )
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [currentUser?.id, buildChatList]);
 
-        
-        chatData.forEach((chat) => {
-          uniqueChats.set(chat.chatId, chat);
-        });
-        const finalChats=Array.from(uniqueChats.values()).sort(
-          (a,b)=>(b.updatedAt-a.updatedAt)
-        );
-        const metaAIChat = {
-          chatId: "deepseek_ai", 
-          user: {
-            username: "AI Chatbot",
-            avatar: "./meta_ai.png", 
-            blocked: [],
-          },
-          lastMessage: "",
-          isSeen: true,
-          updatedAt: Infinity, 
-        };
-         setchats(()=> [metaAIChat, ...finalChats]);
-         setFilterChats(()=> [metaAIChat, ...finalChats])
-         
-        // const uniqueChatArray = Array.from(uniqueChats.values());
+  const filteredChats = input.trim()
+    ? chats.filter((c) =>
+        c.user?.username?.toLowerCase().includes(input.toLowerCase())
+      )
+    : chats;
 
-        // setchats(uniqueChatArray.sort((a, b) => b.updatedAt - a.updatedAt));
-    
-      }
-    );
-    return () => {
-      unSub();
-    };
-  }, [currentUser.id]);
   const handleSelect = async (chat) => {
-    if (chat.chatId === "deepseek_ai") {
+    const isAI = chat.chatId.startsWith("deepseek_ai_");
+    if (isAI) {
       changeChat(chat.chatId, chat.user);
-      return; 
+      return;
     }
-  
-
-    const userChats = chats.map((item) => {
-      const { user, ...rest } = item;
-      return rest;
-    });
-    const chatIndex = userChats.findIndex(
-      (item) => item.chatId === chat.chatId
-    );
-    userChats[chatIndex].isSeen = true;
-    const userChatsRef = doc(db, "userchats", currentUser.id);
     try {
-      await updateDoc(userChatsRef, {
-        chats: userChats,
-      });
-      changeChat(chat.chatId, chat.user);
+      const { data } = await supabase
+        .from("user_chats")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .single();
 
-      console.log("Updated chatId:", useChatStore.getState().chatId); 
+      const updatedChats = (data?.chats ?? []).map((c) =>
+        c.chatId === chat.chatId ? { ...c, isSeen: true } : c
+      );
+
+      await supabase
+        .from("user_chats")
+        .update({ chats: updatedChats })
+        .eq("user_id", currentUser.id);
+
+      changeChat(chat.chatId, chat.user);
     } catch (error) {
       console.log(error);
     }
   };
-  // const filteredChats = chats.filter((c) =>
-  //   c.user.username.toLowerCase().includes(input.toLowerCase())
-  // );
+
   return (
     <div className="chatList">
       <div className="search">
         <div className="searchBar">
-          <img src="./search.png" alt="search logo" />
+          <img src="./search.png" alt="search" />
           <input
             type="text"
             placeholder="Search"
@@ -114,36 +124,40 @@ const ChatList = () => {
         </div>
         <img
           src={addMode ? "./minus.png" : "./plus.png"}
-          alt="plus logo"
-          className="add"
+          alt="toggle add"
+          className="addBtn"
           onClick={() => setAddMode((prev) => !prev)}
         />
       </div>
-      {filterChats.map((chat) => (
-        <div
-          className="item"
-          key={chat.chatId}
-          onClick={() => handleSelect(chat)}
-          style={{ background: chat?.isSeen ? "transparent" : "#5183fe" }}
-        >
-          <img
-            src={
-              chat.user?.blocked?.includes(currentUser.id)
-                ? "./avatar.png"
-                : chat.user.avatar || "./avatar.png"
-            }
-            alt="avatar logo"
-          />
-          <div className="texts">
-            <span>
-              {chat.user?.blocked?.includes(currentUser.id)
-                ? "User"
-                : chat.user.username}
-            </span>
-            <p>{chat.lastMessage}</p>
+
+      {filteredChats.map((chat) => {
+        const isBlocked = chat.user?.blocked?.includes(currentUser.id);
+        const displayName = isBlocked ? "User" : (chat.user?.username ?? "Unknown");
+        const avatar = isBlocked ? "./avatar.png" : (chat.user?.avatar || "./avatar.png");
+        const unseen = !chat.isSeen;
+
+        return (
+          <div
+            key={chat.chatId}
+            className={`item${unseen ? " unseen" : ""}`}
+            onClick={() => handleSelect(chat)}
+          >
+            <div className="avatarWrap">
+              <img src={avatar} alt={displayName} />
+            </div>
+            <div className="itemTexts">
+              <div className="itemHeader">
+                <span className="itemName">{displayName}</span>
+                <span className="itemTime">{formatListTime(chat.updatedAt)}</span>
+              </div>
+              <div className="itemBottom">
+                <span className="itemPreview">{chat.lastMessage || "Start a conversation"}</span>
+                {unseen && <span className="unreadBadge" />}
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {addMode && <AddUser />}
     </div>

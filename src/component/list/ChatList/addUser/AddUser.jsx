@@ -1,20 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import "./AddUser.css";
-import {
-  arrayUnion,
-  collection,
-  doc,
-  getDocs,
-  query,
-  serverTimestamp,
-  getDoc,
-  setDoc,
-  where,
-  updateDoc
-} from "firebase/firestore";
-import { db } from "../../../../lib/Firebase";
+import { supabase } from "../../../../lib/Supabase";
 import { useUserStore } from "../../../../lib/UserStore";
 import { toast } from "react-toastify";
+
 const AddUser = () => {
   const [user, setUser] = useState(null);
   const { currentUser } = useUserStore();
@@ -24,56 +13,87 @@ const AddUser = () => {
     const formData = new FormData(e.target);
     const username = formData.get("username");
     try {
-      const userRef = collection(db, "users");
-      const q = query(userRef, where("username", "==", username));
-      const querySnapShot = await getDocs(q);
-      if (!querySnapShot.empty) {
-        setUser(querySnapShot.docs[0].data());
-      }
-    } catch (error) {
-      console.log(error);
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("username", username)
+        .single();
+      if (error) throw error;
+      setUser(data);
+    } catch {
+      toast.error("User not found");
     }
   };
-  const handleAdd = async () => {
-    const chatRef = collection(db, "chats");
-    const userChatsRef = collection(db, "userchats");
-    try {
-      const currentUserDoc = await getDoc(doc(userChatsRef, currentUser.id));
-      const existingChat = currentUserDoc.data()?.chats.find(chat => chat.receiverId === user.id);
 
-      if (existingChat) {
-        console.log("Chat already exists");
-        toast.warning("Chat already exists")
+  const handleAdd = async () => {
+    try {
+      const { data: myChatsRow } = await supabase
+        .from("user_chats")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .single();
+
+      const existing = (myChatsRow?.chats ?? []).find(
+        (c) => c.receiverId === user.id
+      );
+      if (existing) {
+        toast.warning("Chat already exists");
         return;
       }
-      const newChatRef = doc(chatRef);
-      await setDoc(newChatRef, {
-        createdAt: serverTimestamp(),
-        messages: [],
-      });
 
-      await updateDoc(doc(userChatsRef, user.id), {
-        chats: arrayUnion({
-          chatId: newChatRef.id,
-          lastMessage: "",
-          receiverId: currentUser.id,
-          updatedAt: Date.now(),
-        }),
-      });
-      await updateDoc(doc(userChatsRef, currentUser.id), {
-        chats: arrayUnion({
-          chatId: newChatRef.id,
-          lastMessage: "",
-          receiverId: user.id,
-          updatedAt: Date.now(),
-        }),
-      });
+      const newChatId = crypto.randomUUID();
+      const now = Date.now();
 
-      console.log("newchatref" + newChatRef.id);
+      const { error: chatError } = await supabase
+        .from("chats")
+        .insert({ id: newChatId, messages: [] });
+      if (chatError) throw chatError;
+
+      const { data: receiverRow } = await supabase
+        .from("user_chats")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      await supabase
+        .from("user_chats")
+        .update({
+          chats: [
+            ...(receiverRow?.chats ?? []),
+            {
+              chatId: newChatId,
+              lastMessage: "",
+              receiverId: currentUser.id,
+              updatedAt: now,
+              isSeen: false,
+            },
+          ],
+        })
+        .eq("user_id", user.id);
+
+      await supabase
+        .from("user_chats")
+        .update({
+          chats: [
+            ...(myChatsRow?.chats ?? []),
+            {
+              chatId: newChatId,
+              lastMessage: "",
+              receiverId: user.id,
+              updatedAt: now,
+              isSeen: true,
+            },
+          ],
+        })
+        .eq("user_id", currentUser.id);
+
+      toast.success("User added!");
+      setUser(null);
     } catch (error) {
-      console.log(error);
+      toast.error(error.message);
     }
   };
+
   return (
     <div className="addUser">
       <form onSubmit={handleSearch}>
@@ -83,10 +103,10 @@ const AddUser = () => {
       {user && (
         <div className="user">
           <div className="detail">
-            <img src={user.avatar.png || "./avatar.png"} alt="avatar logo" />
+            <img src={user.avatar || "./avatar.png"} alt="avatar" />
             <span>{user.username}</span>
           </div>
-          <button onClick={handleAdd}> Add User</button>
+          <button onClick={handleAdd}>Add User</button>
         </div>
       )}
     </div>

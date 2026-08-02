@@ -1,0 +1,146 @@
+.callOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(6px);
+}
+
+.callModal {
+  background: rgba(17, 25, 40, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 36px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.callModal.callActive {
+  min-width: 400px;
+  padding: 20px;
+}
+
+.callAvatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #5183fe;
+  box-shadow: 0 0 0 6px rgba(81, 131, 254, 0.15);
+}
+
+.callModal h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #e8eaf6;
+  margin: 0;
+}
+
+.callStatusLabel {
+  font-size: 13px;
+  color: #7986a5;
+}
+
+.callStatus,
+.audioCallInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.videoWrap {
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+  min-height: 240px;
+}
+
+.remoteVid {
+  width: 100%;
+  min-height: 240px;
+  object-fit: cover;
+  display: block;
+}
+
+.localVid {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 90px;
+  height: 68px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid #fff;
+}
+
+.callControls,
+.incomingActions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+
+.callBtn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s, transform 0.1s;
+}
+
+.callBtn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: scale(1.06);
+}
+
+.callBtn.off {
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 0.55;
+}
+
+.callBtn.hangup {
+  background: #e53e3e;
+}
+.callBtn.hangup:hover {
+  background: #c53030;
+}
+
+.callBtn.accept {
+  background: #38a169;
+}
+.callBtn.accept:hover {
+  background: #2f8a5a;
+}
+
+.callBtn.decline {
+  background: #e53e3e;
+}
+.callBtn.decline:hover {
+  background: #c53030;
+}
+
+.callBtn.wide {
+  width: auto;
+  padding: 0 24px;
+  border-radius: 27px;
+  font-size: 14px;
+  font-weight: 600;
+  height: 46px;
+}

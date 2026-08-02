@@ -1,0 +1,164 @@
+.contactsOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.contactsModal {
+  width: min(92vw, 380px);
+  max-height: min(80vh, 560px);
+  background: var(--bg-sidebar);
+  border: 1px solid var(--bd2);
+  border-radius: var(--r16);
+  box-shadow: var(--sh-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────── */
+.contactsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--bd);
+  flex-shrink: 0;
+}
+
+.contactsHeader span {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.contactsClose {
+  background: none;
+  border: none;
+  color: var(--t3);
+  font-size: 16px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--t), color var(--t);
+  line-height: 1;
+}
+
+.contactsClose:hover {
+  background: var(--bg-hover);
+  color: var(--t1);
+}
+
+/* ── Search ─────────────────────────────────── */
+.contactsSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bd);
+  flex-shrink: 0;
+}
+
+.contactsSearch img {
+  width: 14px;
+  height: 14px;
+  opacity: 0.35;
+  flex-shrink: 0;
+}
+
+.contactsSearch input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--t1);
+  font-size: 14px;
+  font-family: inherit;
+  min-width: 0;
+}
+
+.contactsSearch input::placeholder { color: var(--t3); }
+
+/* ── List ───────────────────────────────────── */
+.contactsList {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.contactsEmpty {
+  padding: 28px 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--t3);
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  transition: background var(--t);
+  border-bottom: 1px solid rgba(255,255,255,0.025);
+}
+
+.contactItem:hover {
+  background: var(--bg-hover);
+}
+
+.contactItem img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.contactName {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.contactAddBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--t), transform var(--t);
+}
+
+.contactAddBtn:hover:not(:disabled) {
+  background: var(--accent-dim);
+  transform: scale(1.1);
+}
+
+.contactAddBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}

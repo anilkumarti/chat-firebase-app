@@ -22,7 +22,8 @@ export const fetchAIResponse = async (message) => {
       });
   
       const data = await response.json();
-      return data.choices[0]?.message?.content || "DeepSeek AI is currently unavailable.";
+      if (!response.ok) throw new Error(data.error?.message || `API error ${response.status}`);
+      return data.choices?.[0]?.message?.content || "DeepSeek AI is currently unavailable.";
     } catch (error) {
       console.error("Error fetching AI response:", error);
       return "DeepSeek AI is currently unavailable.";
