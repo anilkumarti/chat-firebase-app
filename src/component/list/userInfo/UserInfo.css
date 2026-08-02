@@ -70,7 +70,7 @@
   background: var(--bg-hover);
 }
 
-.userInfo .icons .contactsBtn {
+.userInfo .icons .iconBtn {
   width: 30px;
   height: 30px;
   padding: 7px;
@@ -86,7 +86,7 @@
   transition: opacity var(--t), background var(--t);
 }
 
-.userInfo .icons .contactsBtn:hover {
+.userInfo .icons .iconBtn:hover {
   opacity: 0.95;
   background: var(--bg-hover);
 }

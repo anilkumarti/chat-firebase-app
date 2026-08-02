@@ -323,6 +323,58 @@
   box-shadow: none;
 }
 
+/* ── Group chat header avatar ───────────────── */
+.chat .top .groupHeaderAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.chat .top .texts .groupMembersHint {
+  font-size: 11px;
+  color: var(--t3);
+  margin-top: 1px;
+}
+
+/* ── Group message sender ───────────────────── */
+.chat .center .message {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.chat .center .message.own {
+  flex-direction: row-reverse;
+}
+
+.chat .center .message .msgSenderAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+  align-self: flex-end;
+  margin-bottom: 2px;
+}
+
+.chat .center .message .texts .senderName {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 3px;
+}
+
 /* ── Responsive ─────────────────────────────── */
 @media (max-width: 900px) {
   .chat .center .message { max-width: 78%; }

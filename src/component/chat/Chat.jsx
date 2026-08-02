@@ -34,8 +34,10 @@ const Chat = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
 
-  const { chatId, user, isCurrentUserBlocked, isRecieverBlocked, triggerChatListRefresh } =
-    useChatStore();
+  const {
+    chatId, user, isGroupChat, groupInfo,
+    isCurrentUserBlocked, isRecieverBlocked, triggerChatListRefresh,
+  } = useChatStore();
   const { currentUser } = useUserStore();
   const { setPendingCall, setSignalCh } = useCallStore();
 
@@ -51,56 +53,54 @@ const Chat = () => {
     if (!chatId) return;
     const isAI = chatId.startsWith("deepseek_ai_");
     const fetchMessages = async () => {
-      const { data } = await supabase
-        .from("chats")
-        .select("messages")
-        .eq("id", chatId)
-        .single();
+      const { data } = await supabase.from("chats").select("messages").eq("id", chatId).single();
       setMessages(data?.messages ?? []);
     };
     fetchMessages();
     if (isAI) return;
     const channel = supabase
       .channel(`chat:${chatId}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "chats", filter: `id=eq.${chatId}` },
-        (payload) => setMessages(payload.new.messages ?? [])
-      )
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chats", filter: `id=eq.${chatId}` },
+        (payload) => setMessages(payload.new.messages ?? []))
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, [chatId]);
 
   const updateUserChats = useCallback(
     async (lastMessage) => {
-      if (!user?.id) return;
-      await Promise.all(
-        [currentUser.id, user.id].map(async (id) => {
-          const { data: row } = await supabase
-            .from("user_chats")
-            .select("*")
-            .eq("user_id", id)
-            .single();
-          const updatedChats = (row?.chats ?? []).map((c) =>
-            c.chatId === chatId
-              ? { ...c, lastMessage, isSeen: id === currentUser.id, updatedAt: Date.now() }
-              : c
-          );
-          await supabase
-            .from("user_chats")
-            .update({ chats: updatedChats })
-            .eq("user_id", id);
-        })
-      );
+      if (isGroupChat) {
+        const memberIds = groupInfo?.member_ids ?? [];
+        await Promise.all(
+          memberIds.map(async (memberId) => {
+            const { data: row } = await supabase.from("user_chats").select("*").eq("user_id", memberId).single();
+            const updatedChats = (row?.chats ?? []).map((c) =>
+              c.chatId === chatId
+                ? { ...c, lastMessage, isSeen: memberId === currentUser.id, updatedAt: Date.now() }
+                : c
+            );
+            await supabase.from("user_chats").update({ chats: updatedChats }).eq("user_id", memberId);
+          })
+        );
+      } else {
+        if (!user?.id) return;
+        await Promise.all(
+          [currentUser.id, user.id].map(async (id) => {
+            const { data: row } = await supabase.from("user_chats").select("*").eq("user_id", id).single();
+            const updatedChats = (row?.chats ?? []).map((c) =>
+              c.chatId === chatId
+                ? { ...c, lastMessage, isSeen: id === currentUser.id, updatedAt: Date.now() }
+                : c
+            );
+            await supabase.from("user_chats").update({ chats: updatedChats }).eq("user_id", id);
+          })
+        );
+      }
       triggerChatListRefresh();
     },
-    [chatId, currentUser?.id, user?.id, triggerChatListRefresh]
+    [chatId, currentUser?.id, user?.id, isGroupChat, groupInfo, triggerChatListRefresh]
   );
 
-  const handleEmoji = (e) => {
-    setText((prev) => prev + e.emoji);
-    setOpen(false);
-  };
+  const handleEmoji = (e) => { setText((prev) => prev + e.emoji); setOpen(false); };
 
   const handleImg = (e) => {
     if (e.target.files[0]) {
@@ -116,17 +116,11 @@ const Chat = () => {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   const handleMicToggle = async () => {
-    if (isRecording) {
-      mediaRecorderRef.current?.stop();
-      return;
-    }
+    if (isRecording) { mediaRecorderRef.current?.stop(); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
@@ -142,73 +136,44 @@ const Chat = () => {
         const file = new File([blob], `voice_${Date.now()}.webm`, { type: "audio/webm" });
         try {
           const audioUrl = await upload(file);
-          const { data: current } = await supabase
-            .from("chats")
-            .select("messages")
-            .eq("id", chatId)
-            .single();
+          const { data: current } = await supabase.from("chats").select("messages").eq("id", chatId).single();
           const newMsg = {
             senderId: currentUser.id,
+            senderName: currentUser.username,
+            senderAvatar: currentUser.avatar,
             audio: audioUrl,
             createdAt: new Date().toISOString(),
           };
           const updated = [...(current?.messages ?? []), newMsg];
-          const { error } = await supabase
-            .from("chats")
-            .update({ messages: updated })
-            .eq("id", chatId);
-          if (!error) {
-            setMessages(updated);
-            await updateUserChats("🎤 Voice message");
-          }
-        } catch {
-          toast.error("Failed to send voice message");
-        }
+          const { error } = await supabase.from("chats").update({ messages: updated }).eq("id", chatId);
+          if (!error) { setMessages(updated); await updateUserChats("🎤 Voice message"); }
+        } catch { toast.error("Failed to send voice message"); }
       };
       recorder.start();
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
       setRecordingTime(0);
-      recordingTimerRef.current = setInterval(
-        () => setRecordingTime((t) => t + 1),
-        1000
-      );
-    } catch {
-      toast.error("Microphone access denied");
-    }
+      recordingTimerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+    } catch { toast.error("Microphone access denied"); }
   };
 
   const initiateCall = async (callType) => {
     if (!user?.id || chatId?.startsWith("deepseek_ai_")) return;
     try {
-      const localStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: callType === "video",
-      });
+      const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === "video" });
       const remoteStream = new MediaStream();
       const peer = new RTCPeerConnection(ICE);
       localStream.getTracks().forEach((t) => peer.addTrack(t, localStream));
-      peer.ontrack = (e) =>
-        e.streams[0].getTracks().forEach((t) => remoteStream.addTrack(t));
+      peer.ontrack = (e) => e.streams[0].getTracks().forEach((t) => remoteStream.addTrack(t));
 
-      const ch = supabase.channel(`calls:${user.id}`, {
-        config: { broadcast: { ack: false } },
-      });
+      const ch = supabase.channel(`calls:${user.id}`, { config: { broadcast: { ack: false } } });
       const iceCandidateQueue = [];
       let chReady = false;
 
       peer.onicecandidate = (e) => {
         if (!e.candidate) return;
-        const payload = {
-          type: "ice-candidate",
-          from: currentUser.id,
-          candidate: e.candidate.toJSON(),
-        };
-        if (chReady) {
-          ch.send({ type: "broadcast", event: "signal", payload });
-        } else {
-          iceCandidateQueue.push(payload);
-        }
+        const payload = { type: "ice-candidate", from: currentUser.id, candidate: e.candidate.toJSON() };
+        chReady ? ch.send({ type: "broadcast", event: "signal", payload }) : iceCandidateQueue.push(payload);
       };
 
       const offer = await peer.createOffer();
@@ -217,20 +182,8 @@ const Chat = () => {
       ch.subscribe(async (status) => {
         if (status !== "SUBSCRIBED") return;
         chReady = true;
-        await ch.send({
-          type: "broadcast",
-          event: "signal",
-          payload: {
-            type: "offer",
-            from: currentUser.id,
-            fromUser: currentUser,
-            callType,
-            offer: { type: offer.type, sdp: offer.sdp },
-          },
-        });
-        for (const p of iceCandidateQueue) {
-          ch.send({ type: "broadcast", event: "signal", payload: p });
-        }
+        await ch.send({ type: "broadcast", event: "signal", payload: { type: "offer", from: currentUser.id, fromUser: currentUser, callType, offer: { type: offer.type, sdp: offer.sdp } } });
+        for (const p of iceCandidateQueue) ch.send({ type: "broadcast", event: "signal", payload: p });
         iceCandidateQueue.length = 0;
       });
 
@@ -243,57 +196,40 @@ const Chat = () => {
   };
 
   const handleSend = async () => {
-    if (!text.trim() && !img.file) {
-      toast.warning("Empty message");
-      return;
-    }
+    if (!text.trim() && !img.file) { toast.warning("Empty message"); return; }
     let imgUrl = null;
     try {
       if (img.file) imgUrl = await upload(img.file);
       const isAI = chatId.startsWith("deepseek_ai_");
+
       if (isAI) {
         const aiResponse = await fetchAIResponse(text);
-        const { data: current } = await supabase
-          .from("chats")
-          .select("messages")
-          .eq("id", chatId)
-          .single();
+        const { data: current } = await supabase.from("chats").select("messages").eq("id", chatId).single();
         const updated = [
           ...(current?.messages ?? []),
-          {
-            senderId: currentUser.id,
-            text,
-            createdAt: new Date().toISOString(),
-            ...(imgUrl && { img: imgUrl }),
-          },
+          { senderId: currentUser.id, text, createdAt: new Date().toISOString(), ...(imgUrl && { img: imgUrl }) },
           { senderId: "deepseek_ai", text: aiResponse, createdAt: new Date().toISOString() },
         ];
-        const { error } = await supabase
-          .from("chats")
-          .upsert({ id: chatId, messages: updated });
+        const { error } = await supabase.from("chats").upsert({ id: chatId, messages: updated });
         if (error) throw error;
         setMessages(updated);
       } else {
-        const { data: current } = await supabase
-          .from("chats")
-          .select("messages")
-          .eq("id", chatId)
-          .single();
+        const { data: current } = await supabase.from("chats").select("messages").eq("id", chatId).single();
         const newMessage = {
           senderId: currentUser.id,
+          senderName: currentUser.username,
+          senderAvatar: currentUser.avatar,
           text,
           createdAt: new Date().toISOString(),
           ...(imgUrl && { img: imgUrl }),
         };
         const updated = [...(current?.messages ?? []), newMessage];
-        const { error } = await supabase
-          .from("chats")
-          .update({ messages: updated })
-          .eq("id", chatId);
+        const { error } = await supabase.from("chats").update({ messages: updated }).eq("id", chatId);
         if (error) throw error;
         setMessages(updated);
         await updateUserChats(text);
       }
+
       if (img.url) URL.revokeObjectURL(img.url);
       setImg({ file: null, url: "" });
       setText("");
@@ -316,26 +252,29 @@ const Chat = () => {
     <div className="chat">
       <div className="top">
         <div className="user">
-          <img src={user?.avatar || "./avatar.png"} alt="avatar" />
+          {isGroupChat ? (
+            groupInfo?.avatar ? (
+              <img src={groupInfo.avatar} alt="group" />
+            ) : (
+              <div className="groupHeaderAvatar">
+                {groupInfo?.name?.charAt(0).toUpperCase() ?? "G"}
+              </div>
+            )
+          ) : (
+            <img src={user?.avatar || "./avatar.png"} alt="avatar" />
+          )}
           <div className="texts">
-            <span>{user?.username}</span>
+            <span>{isGroupChat ? groupInfo?.name : user?.username}</span>
+            {isGroupChat && (
+              <p className="groupMembersHint">{groupInfo?.member_ids?.length} members</p>
+            )}
           </div>
         </div>
         <div className="icons">
-          {!isAIChat && (
+          {!isAIChat && !isGroupChat && (
             <>
-              <img
-                src="./phone.png"
-                alt="Voice call"
-                title="Voice call"
-                onClick={() => initiateCall("audio")}
-              />
-              <img
-                src="./video.png"
-                alt="Video call"
-                title="Video call"
-                onClick={() => initiateCall("video")}
-              />
+              <img src="./phone.png" alt="Voice call" title="Voice call" onClick={() => initiateCall("audio")} />
+              <img src="./video.png" alt="Video call" title="Video call" onClick={() => initiateCall("video")} />
             </>
           )}
           <img src="./info.png" alt="info" />
@@ -343,21 +282,29 @@ const Chat = () => {
       </div>
 
       <div className="center">
-        {messages.map((message, index) => (
-          <div
-            className={message.senderId === currentUser?.id ? "message own" : "message"}
-            key={index}
-          >
-            <div className="texts">
-              {message.img && <img src={message.img} alt="attachment" />}
-              {message.audio && (
-                <audio controls src={message.audio} className="voiceMessage" />
+        {messages.map((message, index) => {
+          const isOwn = message.senderId === currentUser?.id;
+          return (
+            <div className={isOwn ? "message own" : "message"} key={index}>
+              {isGroupChat && !isOwn && (
+                <img
+                  src={message.senderAvatar || "./avatar.png"}
+                  alt=""
+                  className="msgSenderAvatar"
+                />
               )}
-              {message.text && <p>{message.text}</p>}
-              <span className="msgTime">{formatTime(message.createdAt)}</span>
+              <div className="texts">
+                {isGroupChat && !isOwn && (
+                  <span className="senderName">{message.senderName}</span>
+                )}
+                {message.img && <img src={message.img} alt="attachment" />}
+                {message.audio && <audio controls src={message.audio} className="voiceMessage" />}
+                {message.text && <p>{message.text}</p>}
+                <span className="msgTime">{formatTime(message.createdAt)}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {img.url && (
           <div className="message own">
             <div className="texts">
@@ -373,28 +320,14 @@ const Chat = () => {
           <label htmlFor="file">
             <img src="./img.png" alt="image" />
           </label>
-          <input
-            type="file"
-            id="file"
-            style={{ display: "none" }}
-            onChange={handleImg}
-            accept="image/*"
-          />
-          <img
-            src="./camera.png"
-            alt="camera"
-            title="Take photo"
+          <input type="file" id="file" style={{ display: "none" }} onChange={handleImg} accept="image/*" />
+          <img src="./camera.png" alt="camera" title="Take photo"
             onClick={() => !isAIChat && setCameraOpen(true)}
-            style={{ opacity: isAIChat ? 0.3 : undefined }}
-          />
-          <img
-            src="./mic.png"
-            alt="mic"
-            title={isRecording ? "Stop recording" : "Voice message"}
+            style={{ opacity: isAIChat ? 0.3 : undefined }} />
+          <img src="./mic.png" alt="mic" title={isRecording ? "Stop recording" : "Voice message"}
             onClick={() => !isAIChat && handleMicToggle()}
             className={isRecording ? "micActive" : ""}
-            style={{ opacity: isAIChat ? 0.3 : undefined }}
-          />
+            style={{ opacity: isAIChat ? 0.3 : undefined }} />
         </div>
 
         {isRecording ? (
@@ -406,9 +339,7 @@ const Chat = () => {
         ) : (
           <input
             type="text"
-            placeholder={
-              inputDisabled ? "You cannot send a message" : "Type a message..."
-            }
+            placeholder={inputDisabled ? "You cannot send a message" : "Type a message..."}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -417,30 +348,17 @@ const Chat = () => {
         )}
 
         <div className="emoji">
-          <img
-            src="./emoji.png"
-            alt="emoji"
-            onClick={() => setOpen((prev) => !prev)}
-          />
+          <img src="./emoji.png" alt="emoji" onClick={() => setOpen((prev) => !prev)} />
           <div className="picker">
             <EmojiPicker open={open} onEmojiClick={handleEmoji} />
           </div>
         </div>
-        <button
-          className="sendButton"
-          onClick={handleSend}
-          disabled={inputDisabled || isRecording}
-        >
+        <button className="sendButton" onClick={handleSend} disabled={inputDisabled || isRecording}>
           Send
         </button>
       </div>
 
-      {cameraOpen && (
-        <CameraModal
-          onCapture={handleCameraCapture}
-          onClose={() => setCameraOpen(false)}
-        />
-      )}
+      {cameraOpen && <CameraModal onCapture={handleCameraCapture} onClose={() => setCameraOpen(false)} />}
     </div>
   );
 };

@@ -4,6 +4,7 @@ import Detail from "./component/detail/Detail";
 import List from "./component/list/List";
 import Login from "./component/login/Login";
 import Notification from "./component/notification/Notification";
+import SearchModal from "./component/search/SearchModal";
 import { supabase } from "./lib/Supabase";
 import { useUserStore } from "./lib/UserStore";
 import { useChatStore } from "./lib/chatStore";
@@ -12,7 +13,7 @@ import CallModal from "./component/call/CallModal";
 
 const App = () => {
   const { currentUser, isLoading, fetchUserinfo, clearUser } = useUserStore();
-  const { chatId, resetChat } = useChatStore();
+  const { chatId, resetChat, showSearch, setShowSearch } = useChatStore();
 
   useEffect(() => {
     const {
@@ -28,6 +29,19 @@ const App = () => {
     });
     return () => subscription.unsubscribe();
   }, [fetchUserinfo, clearUser]);
+
+  // Cmd+K / Ctrl+K opens message search
+  useEffect(() => {
+    if (!currentUser) return;
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [currentUser, setShowSearch]);
 
   // Global WebRTC signaling listener
   useEffect(() => {
@@ -104,6 +118,7 @@ const App = () => {
       )}
       <Notification />
       <CallModal />
+      {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
     </div>
   );
 };

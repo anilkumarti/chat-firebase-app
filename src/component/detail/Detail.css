@@ -196,6 +196,68 @@
   color: var(--t1);
 }
 
+/* ── Group avatar (detail panel) ────────────── */
+.detail .groupAvatarLarge {
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  border: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ── Members list ───────────────────────────── */
+.detail .membersList {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 12px 10px;
+  gap: 2px;
+}
+
+.detail .memberItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  border-radius: var(--r6);
+  transition: background var(--t);
+}
+
+.detail .memberItem:hover { background: var(--bg-hover); }
+
+.detail .memberItem img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.detail .memberName {
+  flex: 1;
+  font-size: 13px;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail .adminBadge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  flex-shrink: 0;
+}
+
 /* ── Responsive ─────────────────────────────── */
 @media (max-width: 900px) {
   .detail { display: none; }

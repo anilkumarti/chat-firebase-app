@@ -1,0 +1,221 @@
+.searchOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 9vh;
+  z-index: 300;
+}
+
+.searchModal {
+  width: min(94vw, 560px);
+  max-height: 72vh;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--bd2);
+  border-radius: var(--r16);
+  box-shadow: var(--sh-lg), 0 0 0 1px rgba(91,142,247,0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Input row ───────────────────────────────── */
+.searchInputRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--bd);
+  flex-shrink: 0;
+}
+
+.searchIcon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--t1);
+  font-size: 16px;
+  font-family: inherit;
+  min-width: 0;
+}
+
+.searchInput::placeholder { color: var(--t3); }
+
+.searchClear {
+  background: none;
+  border: none;
+  color: var(--t3);
+  cursor: pointer;
+  font-size: 13px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background var(--t), color var(--t);
+}
+
+.searchClear:hover {
+  background: var(--bg-hover);
+  color: var(--t1);
+}
+
+.searchKbd {
+  font-size: 11px;
+  color: var(--t3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--bd2);
+  border-radius: 5px;
+  padding: 2px 7px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+/* ── Results ─────────────────────────────────── */
+.searchResults {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 140px;
+}
+
+.searchHint {
+  padding: 20px 18px;
+  font-size: 13px;
+  color: var(--t3);
+  text-align: center;
+}
+
+.searchEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 20px;
+  opacity: 0.5;
+}
+
+.searchEmptyIcon { font-size: 34px; }
+
+.searchEmpty p {
+  font-size: 13px;
+  color: var(--t2);
+  text-align: center;
+}
+
+.searchEmpty strong { color: var(--t1); }
+
+.searchResult {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: background var(--t);
+  border-bottom: 1px solid rgba(255,255,255,0.025);
+}
+
+.searchResult:hover { background: var(--bg-hover); }
+
+.searchResultAvatar {
+  flex-shrink: 0;
+}
+
+.searchResultAvatar img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-elevated);
+  display: block;
+}
+
+.searchGroupInitial {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.searchResultBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.searchResultHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.searchResultName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchResultTime {
+  font-size: 11px;
+  color: var(--t3);
+  flex-shrink: 0;
+}
+
+.searchResultExcerpt {
+  font-size: 13px;
+  color: var(--t2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.searchResultYou {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.searchResultSender {
+  color: var(--online);
+  font-weight: 500;
+}
+
+.searchResultExcerpt mark {
+  background: rgba(91,142,247,0.22);
+  color: var(--t1);
+  border-radius: 2px;
+  padding: 0 2px;
+  font-style: normal;
+}
+
+.searchCount {
+  padding: 10px 18px;
+  font-size: 11px;
+  color: var(--t3);
+  text-align: center;
+  border-top: 1px solid var(--bd);
+}

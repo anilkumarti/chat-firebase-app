@@ -19,7 +19,7 @@ const ContactsModal = ({ onClose }) => {
     const load = async () => {
       const { data, error } = await supabase
         .from("users")
-        .select("id, username, avatar")
+        .select("*")
         .neq("id", currentUser.id)
         .order("username");
       if (!error) setAllUsers(data ?? []);
@@ -52,7 +52,7 @@ const ContactsModal = ({ onClose }) => {
         .single();
 
       const myChats = myRow?.chats ?? [];
-      const existing = myChats.find((c) => c.receiverId === user.id);
+      const existing = myChats.find((c) => !c.isGroup && c.receiverId === user.id);
 
       if (existing) {
         // Chat exists — just open it

@@ -21,13 +21,21 @@ const ChatList = () => {
   const [addMode, setAddMode] = useState(false);
   const [input, setInput] = useState("");
   const { currentUser } = useUserStore();
-  const { changeChat, chatListRefresh } = useChatStore();
+  const { changeChat, changeGroup, chatListRefresh } = useChatStore();
 
   const buildChatList = useCallback(
     async (row) => {
       const items = row?.chats ?? [];
       const enriched = await Promise.all(
         items.map(async (item) => {
+          if (item.isGroup) {
+            const { data: groupData } = await supabase
+              .from("groups")
+              .select("*")
+              .eq("id", item.groupId)
+              .single();
+            return { ...item, group: groupData };
+          }
           const { data: userData } = await supabase
             .from("users")
             .select("*")
@@ -65,12 +73,7 @@ const ChatList = () => {
       .channel(`user_chats:${currentUser.id}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "user_chats",
-          filter: `user_id=eq.${currentUser.id}`,
-        },
+        { event: "*", schema: "public", table: "user_chats", filter: `user_id=eq.${currentUser.id}` },
         ({ new: newRow }) => buildChatList(newRow)
       )
       .subscribe();
@@ -78,9 +81,10 @@ const ChatList = () => {
   }, [currentUser?.id, buildChatList]);
 
   const filteredChats = input.trim()
-    ? chats.filter((c) =>
-        c.user?.username?.toLowerCase().includes(input.toLowerCase())
-      )
+    ? chats.filter((c) => {
+        const name = c.isGroup ? c.group?.name : c.user?.username;
+        return name?.toLowerCase().includes(input.toLowerCase());
+      })
     : chats;
 
   const handleSelect = async (chat) => {
@@ -89,22 +93,41 @@ const ChatList = () => {
       changeChat(chat.chatId, chat.user);
       return;
     }
+
+    if (chat.isGroup) {
+      try {
+        const { data } = await supabase
+          .from("user_chats")
+          .select("*")
+          .eq("user_id", currentUser.id)
+          .single();
+        const updatedChats = (data?.chats ?? []).map((c) =>
+          c.chatId === chat.chatId ? { ...c, isSeen: true } : c
+        );
+        await supabase
+          .from("user_chats")
+          .update({ chats: updatedChats })
+          .eq("user_id", currentUser.id);
+        changeGroup(chat.chatId, chat.group);
+      } catch (err) {
+        console.log(err);
+      }
+      return;
+    }
+
     try {
       const { data } = await supabase
         .from("user_chats")
         .select("*")
         .eq("user_id", currentUser.id)
         .single();
-
       const updatedChats = (data?.chats ?? []).map((c) =>
         c.chatId === chat.chatId ? { ...c, isSeen: true } : c
       );
-
       await supabase
         .from("user_chats")
         .update({ chats: updatedChats })
         .eq("user_id", currentUser.id);
-
       changeChat(chat.chatId, chat.user);
     } catch (error) {
       console.log(error);
@@ -131,9 +154,14 @@ const ChatList = () => {
       </div>
 
       {filteredChats.map((chat) => {
-        const isBlocked = chat.user?.blocked?.includes(currentUser.id);
-        const displayName = isBlocked ? "User" : (chat.user?.username ?? "Unknown");
-        const avatar = isBlocked ? "./avatar.png" : (chat.user?.avatar || "./avatar.png");
+        const isGroup = !!chat.isGroup;
+        const isBlocked = !isGroup && chat.user?.blocked?.includes(currentUser.id);
+        const displayName = isGroup
+          ? (chat.group?.name ?? "Group")
+          : isBlocked ? "User" : (chat.user?.username ?? "Unknown");
+        const avatar = isGroup
+          ? chat.group?.avatar
+          : isBlocked ? "./avatar.png" : (chat.user?.avatar || "./avatar.png");
         const unseen = !chat.isSeen;
 
         return (
@@ -143,7 +171,12 @@ const ChatList = () => {
             onClick={() => handleSelect(chat)}
           >
             <div className="avatarWrap">
-              <img src={avatar} alt={displayName} />
+              {isGroup && !avatar ? (
+                <div className="groupInitial">{displayName.charAt(0).toUpperCase()}</div>
+              ) : (
+                <img src={avatar || "./avatar.png"} alt={displayName} />
+              )}
+              {isGroup && <span className="groupBadge">👥</span>}
             </div>
             <div className="itemTexts">
               <div className="itemHeader">
