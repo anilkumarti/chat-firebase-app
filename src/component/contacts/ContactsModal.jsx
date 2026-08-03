@@ -128,8 +128,22 @@ const ContactsModal = ({ onClose }) => {
 
         <div className="contactsList">
           {loading && <p className="contactsEmpty">Loading…</p>}
-          {!loading && filtered.length === 0 && (
+          {!loading && filtered.length === 0 && !query.trim() && (
             <p className="contactsEmpty">No users found</p>
+          )}
+          {!loading && !query.trim() && (
+            <div key={currentUser.id} className="contactItem">
+              <img src={currentUser.avatar || "./avatar.png"} alt="You" />
+              <span className="contactName">You</span>
+              <button
+                className="contactAddBtn"
+                onClick={() => handleStartChat(currentUser)}
+                disabled={pending === currentUser.id}
+                title="Message yourself"
+              >
+                {pending === currentUser.id ? "…" : "+"}
+              </button>
+            </div>
           )}
           {filtered.map((user) => (
             <div key={user.id} className="contactItem">
