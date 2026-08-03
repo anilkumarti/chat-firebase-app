@@ -88,6 +88,7 @@ const Login = () => {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
 
+      sessionStorage.setItem("chatapp_just_signed_up", "1");
       toast.success("Welcome! You're now signed in.");
     } catch (error) {
       toast.error(error.message);

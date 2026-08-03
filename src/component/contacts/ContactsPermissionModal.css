@@ -1,0 +1,130 @@
+.cpOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.cpModal {
+  background: var(--bg-elevated);
+  border: 1px solid var(--bd2);
+  border-radius: var(--r12);
+  padding: 32px 28px 24px;
+  width: min(92vw, 360px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--sh-lg);
+  text-align: center;
+}
+
+.cpIcon { font-size: 40px; line-height: 1; }
+
+.cpModal h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--t1);
+  letter-spacing: -0.02em;
+}
+
+.cpModal p {
+  font-size: 13px;
+  color: var(--t2);
+  line-height: 1.6;
+  max-width: 280px;
+}
+
+.cpActions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.cpSkip {
+  flex: 1;
+  padding: 11px;
+  border: 1px solid var(--bd2);
+  background: transparent;
+  color: var(--t2);
+  border-radius: var(--r6);
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  transition: background var(--t), color var(--t);
+}
+
+.cpSkip:hover { background: var(--bg-hover); color: var(--t1); }
+
+.cpAllow {
+  flex: 1;
+  padding: 11px;
+  border: none;
+  background: var(--accent-sent);
+  color: #fff;
+  border-radius: var(--r6);
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 600;
+  transition: opacity var(--t);
+}
+
+.cpAllow:hover:not(:disabled) { opacity: 0.88; }
+.cpAllow:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Contacts list */
+.cpList {
+  width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.cpEmpty { font-size: 13px; color: var(--t3); text-align: center; padding: 20px 0; }
+
+.cpItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--r6);
+  background: var(--bg-surface);
+  border: 1px solid var(--bd);
+}
+
+.cpAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.cpInfo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.cpName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cpTel { font-size: 12px; color: var(--t3); }

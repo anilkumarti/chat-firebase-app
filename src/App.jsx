@@ -11,6 +11,7 @@ import { useChatStore } from "./lib/chatStore";
 import { useCallStore } from "./lib/callStore";
 import { saveCallEvent } from "./lib/callUtils";
 import CallModal from "./component/call/CallModal";
+import ContactsPermissionModal from "./component/contacts/ContactsPermissionModal";
 
 const App = () => {
   const { currentUser, isLoading, fetchUserinfo, clearUser } = useUserStore();
@@ -18,6 +19,7 @@ const App = () => {
 
   const [listW, setListW]     = useState(280);
   const [detailW, setDetailW] = useState(240);
+  const [showContactsPerm, setShowContactsPerm] = useState(false);
 
   const startResize = (panel, e) => {
     e.preventDefault();
@@ -53,6 +55,14 @@ const App = () => {
     });
     return () => subscription.unsubscribe();
   }, [fetchUserinfo, clearUser]);
+
+  // Show contacts permission modal once for new signups
+  useEffect(() => {
+    if (currentUser && sessionStorage.getItem("chatapp_just_signed_up")) {
+      sessionStorage.removeItem("chatapp_just_signed_up");
+      setShowContactsPerm(true);
+    }
+  }, [currentUser]);
 
   // Cmd+K / Ctrl+K opens message search
   useEffect(() => {
@@ -182,6 +192,7 @@ const App = () => {
       <Notification />
       <CallModal />
       {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
+      {showContactsPerm && <ContactsPermissionModal onClose={() => setShowContactsPerm(false)} />}
     </div>
   );
 };
