@@ -133,10 +133,9 @@ const Detail = () => {
                   <div className="photoItem" key={index}>
                     <div className="photoDetail">
                       <img src={file} alt={`shared ${index + 1}`} />
-                      <span>{`photo_${index + 1}.png`}</span>
                     </div>
-                    <a href={file} download>
-                      <img src="./download.png" alt="download" className="icon" />
+                    <a href={file} download className="photoOverlay">
+                      <img src="./download.png" alt="download" />
                     </a>
                   </div>
                 ))

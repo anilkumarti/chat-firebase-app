@@ -136,7 +136,7 @@ const App = () => {
           {chatId ? (
             <>
               <Chat />
-              {showDetail && <Detail />
+              {showDetail && <Detail />}
             </>
           ) : (
             <div className="noChat">

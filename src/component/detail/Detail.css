@@ -10,36 +10,39 @@
   flex-shrink: 0;
 }
 
-/* ── User section ───────────────────────────── */
+/* ── User / Group hero ──────────────────────── */
 .detail .user {
-  padding: 28px 16px 20px;
+  padding: 28px 16px 22px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid var(--bd);
   flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(91,142,247,0.06) 0%, transparent 100%);
 }
 
 .detail .user img {
-  width: 66px;
-  height: 66px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--bd2);
+  border: 3px solid rgba(91,142,247,0.35);
   background: var(--bg-elevated);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
 }
 
 .detail .user h2 {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--t1);
   text-align: center;
+  letter-spacing: -0.01em;
 }
 
 .detail .user p {
   font-size: 12px;
-  color: var(--t2);
+  color: var(--t3);
   text-align: center;
   line-height: 1.5;
   padding: 0 8px;
@@ -49,8 +52,9 @@
 .detail .info {
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
+  padding: 6px 0 16px;
   flex: 1;
+  gap: 2px;
 }
 
 .detail .option {
@@ -61,34 +65,32 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 11px 16px;
+  padding: 12px 16px;
   cursor: pointer;
   user-select: none;
   transition: background var(--t);
 }
 
-.detail .option .title:hover {
-  background: var(--bg-hover);
-}
+.detail .option .title:hover { background: var(--bg-hover); }
 
 .detail .option .title span {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--t2);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.09em;
 }
 
 .detail .option .title img {
-  width: 26px;
-  height: 26px;
-  padding: 7px;
+  width: 24px;
+  height: 24px;
+  padding: 6px;
   background: var(--bg-input);
   border-radius: 50%;
   border: 1px solid var(--bd);
   cursor: pointer;
-  opacity: 0.6;
-  transition: background var(--t), opacity var(--t);
+  opacity: 0.55;
+  transition: background var(--t), opacity var(--t), transform 0.2s;
 }
 
 .detail .option .title img:hover {
@@ -96,92 +98,83 @@
   opacity: 1;
 }
 
+/* ── Photo grid ─────────────────────────────── */
 .detail .option .photos {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 0 12px 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px 12px 12px;
 }
 
 .detail .option .photos p {
+  grid-column: 1 / -1;
   font-size: 12px;
   color: var(--t3);
   text-align: center;
-  padding: 12px 0;
+  padding: 14px 0;
 }
 
 .detail .option .photos .photoItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 7px 4px;
-  border-radius: var(--r6);
-  gap: 8px;
-  transition: background var(--t);
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  cursor: pointer;
+  background: var(--bg-elevated);
 }
 
-.detail .option .photos .photoItem:hover {
-  background: var(--bg-hover);
-}
-
-.detail .option .photos .photoItem .photoDetail {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
+.detail .option .photos .photoItem:hover .photoOverlay { opacity: 1; }
 
 .detail .option .photos .photoItem .photoDetail img {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--r6);
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  background: var(--bg-elevated);
-  flex-shrink: 0;
+  display: block;
 }
 
-.detail .option .photos .photoItem .photoDetail span {
-  font-size: 12px;
-  color: var(--t2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.detail .option .photos .photoOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
 }
 
-.detail .option .photos .photoItem .icon {
+.detail .option .photos .photoOverlay img {
   width: 28px;
   height: 28px;
   padding: 7px;
+  background: rgba(255,255,255,0.15);
   border-radius: 50%;
-  cursor: pointer;
-  flex-shrink: 0;
-  opacity: 0.35;
-  transition: background var(--t), opacity var(--t);
+  opacity: 1;
 }
 
-.detail .option .photos .photoItem .icon:hover {
-  background: var(--bg-active);
-  opacity: 0.75;
-}
+/* Hide old photoDetail span */
+.detail .option .photos .photoDetail span { display: none; }
 
 /* ── Action buttons ─────────────────────────── */
 .detail .info button {
-  margin: 6px 12px 0;
-  padding: 9px 14px;
-  border-radius: var(--r6);
+  margin: 4px 12px 0;
+  padding: 10px 16px;
+  border-radius: 10px;
   border: 1px solid rgba(240,71,71,0.2);
-  background: rgba(240,71,71,0.04);
+  background: rgba(240,71,71,0.06);
   color: var(--danger);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background var(--t), border-color var(--t);
+  transition: background var(--t), border-color var(--t), transform var(--t);
+  text-align: left;
 }
 
 .detail .info button:hover {
-  background: rgba(240,71,71,0.1);
+  background: rgba(240,71,71,0.12);
   border-color: rgba(240,71,71,0.4);
+  transform: translateY(-1px);
 }
 
 .detail .info button.logout {
@@ -194,21 +187,23 @@
   background: var(--bg-elevated);
   border-color: var(--bd2);
   color: var(--t1);
+  transform: translateY(-1px);
 }
 
-/* ── Group avatar (detail panel) ────────────── */
+/* ── Group avatar (detail) ──────────────────── */
 .detail .groupAvatarLarge {
-  width: 66px;
-  height: 66px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   background: var(--accent-dim);
-  border: 2px solid var(--accent);
+  border: 3px solid rgba(91,142,247,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--accent);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
 }
 
 /* ── Members list ───────────────────────────── */
@@ -216,32 +211,34 @@
   display: flex;
   flex-direction: column;
   padding: 4px 12px 10px;
-  gap: 2px;
+  gap: 1px;
 }
 
 .detail .memberItem {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 4px;
-  border-radius: var(--r6);
+  padding: 8px 6px;
+  border-radius: 10px;
   transition: background var(--t);
 }
 
 .detail .memberItem:hover { background: var(--bg-hover); }
 
 .detail .memberItem img {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   object-fit: cover;
   background: var(--bg-elevated);
   flex-shrink: 0;
+  border: 1.5px solid var(--bd2);
 }
 
 .detail .memberName {
   flex: 1;
   font-size: 13px;
+  font-weight: 500;
   color: var(--t1);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -250,12 +247,13 @@
 
 .detail .adminBadge {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent);
   background: var(--accent-soft);
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: var(--r-pill);
   flex-shrink: 0;
+  border: 1px solid rgba(91,142,247,0.25);
 }
 
 /* ── Responsive ─────────────────────────────── */

@@ -33,6 +33,23 @@ const formatTime = (iso) => {
     : d.toLocaleDateString([], { weekday: "short", hour: "2-digit", minute: "2-digit" });
 };
 
+const formatDateLabel = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.floor((now - d) / 86400000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return d.toLocaleDateString([], { weekday: "long" });
+  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+};
+
+const isSameDay = (a, b) => {
+  if (!a || !b) return false;
+  const da = new Date(a), db = new Date(b);
+  return da.getDate() === db.getDate() && da.getMonth() === db.getMonth() && da.getFullYear() === db.getFullYear();
+};
+
 const Chat = () => {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -312,6 +329,8 @@ const Chat = () => {
       <div className="center">
         {messages.map((message, index) => {
           const isOwn = message.senderId === currentUser?.id;
+          const prevDate = messages[index - 1]?.createdAt;
+          const showDateSep = !isSameDay(prevDate, message.createdAt);
 
           /* ── Call event bubble ────────────────── */
           if (message.type === "call_event") {
@@ -324,15 +343,20 @@ const Chat = () => {
               isDeclined ? `Declined call` :
                            `${isVideo ? "Video" : "Voice"} call`;
             return (
-              <div key={index} className={`callEventMsg${isMissed || isDeclined ? " callEventMissed" : ""}`}>
-                <span className="callEventIcon">{statusIcon}</span>
-                <div className="callEventBody">
-                  <span className="callEventLabel">{label}</span>
-                  {message.duration > 0 && (
-                    <span className="callEventDuration">{fmtCallDuration(message.duration)}</span>
-                  )}
+              <div key={index}>
+                {showDateSep && message.createdAt && (
+                  <div className="dateSeparator"><span>{formatDateLabel(message.createdAt)}</span></div>
+                )}
+                <div className={`callEventMsg${isMissed || isDeclined ? " callEventMissed" : ""}`}>
+                  <span className="callEventIcon">{statusIcon}</span>
+                  <div className="callEventBody">
+                    <span className="callEventLabel">{label}</span>
+                    {message.duration > 0 && (
+                      <span className="callEventDuration">{fmtCallDuration(message.duration)}</span>
+                    )}
+                  </div>
+                  <span className="callEventTime">{formatTime(message.createdAt)}</span>
                 </div>
-                <span className="callEventTime">{formatTime(message.createdAt)}</span>
               </div>
             );
           }
@@ -340,9 +364,12 @@ const Chat = () => {
           /* ── Regular message ──────────────────── */
           const reactionEntries = Object.entries(message.reactions || {});
           return (
+            <div key={index}>
+              {showDateSep && message.createdAt && (
+                <div className="dateSeparator"><span>{formatDateLabel(message.createdAt)}</span></div>
+              )}
             <div
               className={isOwn ? "message own" : "message"}
-              key={index}
               onMouseEnter={() => setHoveredMsg(index)}
               onMouseLeave={() => setHoveredMsg(null)}
             >
@@ -385,6 +412,7 @@ const Chat = () => {
                   ))}
                 </div>
               )}
+            </div>
             </div>
           );
         })}
@@ -436,8 +464,8 @@ const Chat = () => {
             <EmojiPicker open={open} onEmojiClick={handleEmoji} />
           </div>
         </div>
-        <button className="sendButton" onClick={handleSend} disabled={inputDisabled || isRecording}>
-          Send
+        <button className="sendButton" onClick={handleSend} disabled={inputDisabled || isRecording} title="Send">
+          ➤
         </button>
       </div>
 
