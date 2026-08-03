@@ -122,6 +122,19 @@ const Chat = () => {
         );
       }
       triggerChatListRefresh();
+
+      // Broadcast to each receiver so their chat list updates in real time
+      const receiverIds = isGroupChat
+        ? (groupInfo?.member_ids ?? []).filter((id) => id !== currentUser.id)
+        : user?.id ? [user.id] : [];
+      receiverIds.forEach((userId) => {
+        const bc = supabase.channel(`inbox:${userId}`);
+        bc.subscribe((status) => {
+          if (status !== "SUBSCRIBED") return;
+          bc.send({ type: "broadcast", event: "chat_updated", payload: {} });
+          setTimeout(() => supabase.removeChannel(bc), 2000);
+        });
+      });
     },
     [chatId, currentUser?.id, user?.id, isGroupChat, groupInfo, triggerChatListRefresh]
   );

@@ -67,26 +67,39 @@ const ChatList = () => {
       .then(({ data }) => buildChatList(data));
   }, [currentUser?.id, chatListRefresh, buildChatList]);
 
+  const refetchChats = useCallback(() => {
+    if (!currentUser?.id) return;
+    supabase
+      .from("user_chats")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .single()
+      .then(({ data }) => buildChatList(data));
+  }, [currentUser?.id, buildChatList]);
+
+  // postgres_changes fallback (works if realtime publication is enabled)
   useEffect(() => {
     if (!currentUser?.id) return;
-    const refetch = () =>
-      supabase
-        .from("user_chats")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .single()
-        .then(({ data }) => buildChatList(data));
-
     const channel = supabase
       .channel(`user_chats:${currentUser.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_chats", filter: `user_id=eq.${currentUser.id}` },
-        refetch
+        refetchChats
       )
       .subscribe();
     return () => supabase.removeChannel(channel);
-  }, [currentUser?.id, buildChatList]);
+  }, [currentUser?.id, refetchChats]);
+
+  // Broadcast channel — sender pings this directly, no DB publication needed
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const bc = supabase
+      .channel(`inbox:${currentUser.id}`)
+      .on("broadcast", { event: "chat_updated" }, refetchChats)
+      .subscribe();
+    return () => supabase.removeChannel(bc);
+  }, [currentUser?.id, refetchChats]);
 
   const filteredChats = input.trim()
     ? chats.filter((c) => {
