@@ -15,7 +15,9 @@ const ContactsPermissionModal = ({ onClose }) => {
     setLoading(true);
     try {
       const results = await navigator.contacts.select(["name", "tel"], { multiple: true });
-      setContacts(results);
+      const serializable = results.map((c) => ({ name: c.name ?? [], tel: c.tel ?? [] }));
+      localStorage.setItem("chatapp_phone_contacts", JSON.stringify(serializable));
+      setContacts(serializable);
     } catch (err) {
       if (err.name !== "AbortError") toast.error("Could not access contacts.");
       onClose();

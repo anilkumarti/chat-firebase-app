@@ -5,6 +5,7 @@ import { useChatStore } from "../../../lib/chatStore";
 import { supabase } from "../../../lib/Supabase";
 import ContactsModal from "../../contacts/ContactsModal";
 import CreateGroupModal from "../../groups/CreateGroupModal";
+import PhoneContactsModal from "../../contacts/PhoneContactsModal";
 
 const UserInfo = () => {
   const { currentUser } = useUserStore();
@@ -12,6 +13,7 @@ const UserInfo = () => {
   const [showContacts, setShowContacts] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [showPhoneContacts, setShowPhoneContacts] = useState(false);
   const moreRef = useRef(null);
 
   useEffect(() => {
@@ -53,6 +55,12 @@ const UserInfo = () => {
               <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
           </button>
+          {/* Phone contacts */}
+          <button className="iconBtn" onClick={() => setShowPhoneContacts(true)} title="Phone contacts">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07C9.44 17.29 7.76 15.97 6.32 14.4A19.79 19.79 0 0 1 3.25 5.77 2 2 0 0 1 5.23 3.58h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L9.91 11.4a16 16 0 0 0 6.29 6.29l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 18.92z"/>
+            </svg>
+          </button>
           {/* New Group */}
           <button className="iconBtn" onClick={() => setShowCreateGroup(true)} title="New Group">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -89,6 +97,7 @@ const UserInfo = () => {
 
       {showContacts && <ContactsModal onClose={() => setShowContacts(false)} />}
       {showCreateGroup && <CreateGroupModal onClose={() => setShowCreateGroup(false)} />}
+      {showPhoneContacts && <PhoneContactsModal onClose={() => setShowPhoneContacts(false)} />}
     </>
   );
 };
