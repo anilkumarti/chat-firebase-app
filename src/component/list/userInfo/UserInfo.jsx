@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./UserInfo.css";
 import { useUserStore } from "../../../lib/UserStore";
 import { useChatStore } from "../../../lib/chatStore";
+import { supabase } from "../../../lib/Supabase";
 import ContactsModal from "../../contacts/ContactsModal";
 import CreateGroupModal from "../../groups/CreateGroupModal";
 
@@ -10,6 +11,20 @@ const UserInfo = () => {
   const { setShowSearch } = useChatStore();
   const [showContacts, setShowContacts] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  const moreRef = useRef(null);
+
+  useEffect(() => {
+    if (!showMore) return;
+    const handler = (e) => { if (!moreRef.current?.contains(e.target)) setShowMore(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showMore]);
+
+  const handleLogout = async () => {
+    setShowMore(false);
+    await supabase.auth.signOut();
+  };
 
   return (
     <>
@@ -47,8 +62,28 @@ const UserInfo = () => {
               <line x1="22" y1="11" x2="16" y2="11"/>
             </svg>
           </button>
-          <img src="./more.png" alt="more" />
-          <img src="./edit.png" alt="edit" />
+          {/* More options */}
+          <div className="moreWrap" ref={moreRef}>
+            <img src="./more.png" alt="more" title="More options"
+              style={{ cursor: "pointer" }}
+              onClick={() => setShowMore((p) => !p)} />
+            {showMore && (
+              <div className="moreDropdown">
+                <button className="moreItem moreItemDanger" onClick={handleLogout}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                  Log out
+                </button>
+              </div>
+            )}
+          </div>
+          {/* New chat (compose) */}
+          <img src="./edit.png" alt="new chat" title="New chat"
+            style={{ cursor: "pointer" }}
+            onClick={() => setShowContacts(true)} />
         </div>
       </div>
 
