@@ -98,7 +98,7 @@
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background: var(--bg-elevated, #1e2336);
+  background: var(--bg-elevated, #1e1e32);
   border: 1px solid var(--bd, rgba(255,255,255,0.1));
   border-radius: 10px;
   padding: 4px;
@@ -118,7 +118,7 @@
   border-radius: 7px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--t1, #e8eaf6);
+  color: var(--t1, #e2defd);
   cursor: pointer;
   text-align: left;
   transition: background 0.12s;
@@ -129,7 +129,7 @@
 }
 
 .moreItemDanger {
-  color: #fc8181;
+  color: #f87171;
 }
 
 .moreItemDanger:hover {

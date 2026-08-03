@@ -50,10 +50,10 @@
 
 .cameraControls .cam-cancel {
   background: rgba(255, 255, 255, 0.1);
-  color: #e8eaf6;
+  color: #e2defd;
 }
 
 .cameraControls .cam-capture {
-  background: #5183fe;
+  background: #7c6af5;
   color: white;
 }

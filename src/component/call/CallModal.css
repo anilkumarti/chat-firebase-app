@@ -17,8 +17,8 @@
 /* ── Base modal card ─────────────────────────────────────── */
 .callModal {
   position: relative;
-  background: linear-gradient(155deg, #0d1529 0%, #111827 100%);
-  border: 1px solid rgba(91, 142, 247, 0.14);
+  background: linear-gradient(155deg, #110d24 0%, #0e0e1a 100%);
+  border: 1px solid rgba(124, 106, 245, 0.14);
   border-radius: 28px;
   padding: 36px 28px 30px;
   min-width: 300px;
@@ -41,7 +41,7 @@
   right: -30%;
   width: 80%;
   height: 80%;
-  background: radial-gradient(circle, rgba(91, 142, 247, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(124, 106, 245, 0.08) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -86,20 +86,20 @@
   border-radius: 50%;
   object-fit: cover;
   display: block;
-  border: 3px solid rgba(91, 142, 247, 0.5);
+  border: 3px solid rgba(124, 106, 245, 0.5);
 }
 
 /* Active call: soft glow ring */
 .cAvatarActive {
   box-shadow:
-    0 0 0 8px rgba(91, 142, 247, 0.08),
-    0 0 32px rgba(91, 142, 247, 0.2);
+    0 0 0 8px rgba(124, 106, 245, 0.08),
+    0 0 32px rgba(124, 106, 245, 0.2);
   animation: activeGlow 2.5s ease-in-out infinite;
 }
 
 @keyframes activeGlow {
-  0%, 100% { box-shadow: 0 0 0 8px rgba(91, 142, 247, 0.08), 0 0 32px rgba(91, 142, 247, 0.2); }
-  50%       { box-shadow: 0 0 0 14px rgba(91, 142, 247, 0.04), 0 0 48px rgba(91, 142, 247, 0.3); }
+  0%, 100% { box-shadow: 0 0 0 8px rgba(124, 106, 245, 0.08), 0 0 32px rgba(124, 106, 245, 0.2); }
+  50%       { box-shadow: 0 0 0 14px rgba(124, 106, 245, 0.04), 0 0 48px rgba(124, 106, 245, 0.3); }
 }
 
 /* Incoming call: pulsing rings */
@@ -108,7 +108,7 @@
   content: "";
   position: absolute;
   border-radius: 50%;
-  border: 2px solid rgba(91, 142, 247, 0.5);
+  border: 2px solid rgba(124, 106, 245, 0.5);
   animation: ringPulse 1.8s ease-out infinite;
 }
 
@@ -126,7 +126,7 @@
   position: absolute;
   inset: -10px;
   border-radius: 50%;
-  border: 2px solid rgba(91, 142, 247, 0.35);
+  border: 2px solid rgba(124, 106, 245, 0.35);
   animation: ringPulse 2.6s ease-out infinite;
 }
 
@@ -134,7 +134,7 @@
 .cName {
   font-size: 20px;
   font-weight: 700;
-  color: #e8eaf6;
+  color: #e2defd;
   margin: 0 0 8px;
   text-align: center;
   letter-spacing: -0.01em;
@@ -242,7 +242,7 @@
   border-radius: 16px;
   padding: 13px 14px 10px;
   cursor: pointer;
-  color: #dde3f5;
+  color: #e2defd;
   font-family: inherit;
   min-width: 64px;
   transition: background 0.15s, transform 0.1s, border-color 0.15s;
@@ -270,9 +270,9 @@
 
 /* Screen sharing active */
 .ctrlBtn.ctrlActive {
-  background: rgba(91, 142, 247, 0.18);
-  border-color: rgba(91, 142, 247, 0.4);
-  color: #7aabff;
+  background: rgba(124, 106, 245, 0.18);
+  border-color: rgba(124, 106, 245, 0.4);
+  color: #9b8ffc;
 }
 
 .ctrlBtn.ctrlActive span { color: rgba(122, 171, 255, 0.7); }
@@ -281,7 +281,7 @@
 .ctrlBtn.ctrlEnd {
   background: rgba(229, 62, 62, 0.14);
   border-color: rgba(229, 62, 62, 0.28);
-  color: #fc8181;
+  color: #f87171;
 }
 
 .ctrlBtn.ctrlEnd:hover {
@@ -296,7 +296,7 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: #e53e3e;
+  background: #ef4444;
   border: none;
   cursor: pointer;
   color: #fff;
@@ -308,7 +308,7 @@
 }
 
 .endRoundBtn:hover {
-  background: #c53030;
+  background: #dc2626;
   transform: scale(1.06);
 }
 
@@ -352,5 +352,5 @@
 
 .roundBtn:hover { transform: scale(1.08); filter: brightness(1.15); }
 
-.roundBtnRed   { background: #e53e3e; }
-.roundBtnGreen { background: #38a169; }
+.roundBtnRed   { background: #ef4444; }
+.roundBtnGreen { background: #34d399; }

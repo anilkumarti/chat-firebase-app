@@ -8,35 +8,35 @@
 
 :root {
   /* ── Surfaces ─────────────────────────────── */
-  --bg-app:      #080b12;
-  --bg-sidebar:  #0e1220;
-  --bg-chat:     #0b0f1a;
-  --bg-surface:  #151c2e;
-  --bg-elevated: #1d2540;
-  --bg-hover:    rgba(255,255,255,0.04);
-  --bg-active:   rgba(255,255,255,0.07);
-  --bg-input:    rgba(255,255,255,0.05);
+  --bg-app:      #0c0c14;
+  --bg-sidebar:  #101018;
+  --bg-chat:     #09090f;
+  --bg-surface:  #16162a;
+  --bg-elevated: #1e1e32;
+  --bg-hover:    rgba(124,106,245,0.06);
+  --bg-active:   rgba(124,106,245,0.11);
+  --bg-input:    rgba(255,255,255,0.045);
 
   /* ── Accent ───────────────────────────────── */
-  --accent:       #5b8ef7;
-  --accent-h:     #4a7ef0;
-  --accent-soft:  rgba(91,142,247,0.10);
-  --accent-dim:   rgba(91,142,247,0.18);
-  --accent-sent:  linear-gradient(145deg,#5b8ef7,#3d6de2);
+  --accent:       #7c6af5;
+  --accent-h:     #6855e0;
+  --accent-soft:  rgba(124,106,245,0.10);
+  --accent-dim:   rgba(124,106,245,0.18);
+  --accent-sent:  linear-gradient(145deg,#7c6af5,#5b43d0);
 
   /* ── Text ─────────────────────────────────── */
-  --t1: #dce4f5;
-  --t2: #8795b6;
-  --t3: #4b5a7d;
+  --t1: #e2defd;
+  --t2: #7372a4;
+  --t3: #46446a;
 
   /* ── Semantic ─────────────────────────────── */
-  --online:  #3dba6e;
-  --danger:  #f04747;
-  --warn:    #f0a732;
+  --online:  #34d399;
+  --danger:  #f87171;
+  --warn:    #fbbf24;
 
   /* ── Border ───────────────────────────────── */
-  --bd:   rgba(255,255,255,0.06);
-  --bd2:  rgba(255,255,255,0.11);
+  --bd:   rgba(255,255,255,0.07);
+  --bd2:  rgba(255,255,255,0.13);
 
   /* ── Shadow ───────────────────────────────── */
   --sh-xs: 0 1px 3px rgba(0,0,0,.35);
@@ -74,7 +74,7 @@ html, body {
 
 body {
   background: radial-gradient(ellipse 120% 100% at 20% 0%,
-    #0f1a32 0%, #080c18 55%, #0b0f1e 100%);
+    #1a0a35 0%, #0c0c16 55%, #08080e 100%);
   display: flex;
   align-items: center;
   justify-content: center;

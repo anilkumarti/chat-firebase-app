@@ -277,8 +277,8 @@
 
 .chat .bottom input:focus {
   border-color: var(--accent);
-  background: rgba(91,142,247,0.05);
-  box-shadow: 0 0 0 3px rgba(91,142,247,0.1);
+  background: rgba(124,106,245,0.05);
+  box-shadow: 0 0 0 3px rgba(124,106,245,0.1);
 }
 
 .chat .bottom input::placeholder { color: var(--t3); }
@@ -472,11 +472,11 @@
 .callEventLabel {
   font-size: 13px;
   font-weight: 600;
-  color: var(--t1, #e8eaf6);
+  color: var(--t1, #e2defd);
   white-space: nowrap;
 }
 
-.callEventMissed .callEventLabel { color: #fc8181; }
+.callEventMissed .callEventLabel { color: #f87171; }
 
 .callEventDuration {
   font-size: 11px;
@@ -503,7 +503,7 @@
   left: 0;
   display: flex;
   gap: 1px;
-  background: var(--bg-elevated, #1e2336);
+  background: var(--bg-elevated, #1e1e32);
   border: 1px solid var(--bd, rgba(255,255,255,0.1));
   border-radius: 22px;
   padding: 5px 8px;
@@ -547,7 +547,7 @@
   padding: 2px 8px;
   font-size: 13px;
   cursor: pointer;
-  color: var(--t1, #e8eaf6);
+  color: var(--t1, #e2defd);
   transition: background 0.12s, border-color 0.12s, transform 0.1s;
   line-height: 1.4;
 }
@@ -565,8 +565,8 @@
 }
 
 .reactionPill.reactionPillOwn {
-  background: rgba(91,142,247,0.15);
-  border-color: rgba(91,142,247,0.4);
+  background: rgba(124,106,245,0.15);
+  border-color: rgba(124,106,245,0.4);
 }
 
-.reactionPill.reactionPillOwn span { color: #7aabff; }
+.reactionPill.reactionPillOwn span { color: #9b8ffc; }
