@@ -69,8 +69,10 @@ const Login = () => {
       });
       if (chatError) throw chatError;
 
-      toast.success("Account created. You can log in now.");
-      switchMode("login");
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) throw signInError;
+
+      toast.success("Welcome! You're now signed in.");
     } catch (error) {
       toast.error(error.message);
     } finally {
