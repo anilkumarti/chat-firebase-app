@@ -41,6 +41,7 @@ const Chat = () => {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [hoveredMsg, setHoveredMsg] = useState(null);
 
   const {
     chatId, user, isGroupChat, groupInfo,
@@ -203,6 +204,25 @@ const Chat = () => {
     }
   };
 
+  const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+
+  const toggleReaction = async (msgIndex, emoji) => {
+    if (!chatId || chatId.startsWith("deepseek_ai_")) return;
+    const updated = messages.map((msg, i) => {
+      if (i !== msgIndex) return msg;
+      const reactions = { ...(msg.reactions || {}) };
+      const users = reactions[emoji] ? [...reactions[emoji]] : [];
+      const idx = users.indexOf(currentUser.id);
+      if (idx === -1) users.push(currentUser.id);
+      else users.splice(idx, 1);
+      if (users.length === 0) delete reactions[emoji];
+      else reactions[emoji] = users;
+      return { ...msg, reactions };
+    });
+    setMessages(updated);
+    await supabase.from("chats").update({ messages: updated }).eq("id", chatId);
+  };
+
   const handleSend = async () => {
     if (!text.trim() && !img.file) { toast.warning("Empty message"); return; }
     let imgUrl = null;
@@ -318,8 +338,14 @@ const Chat = () => {
           }
 
           /* ── Regular message ──────────────────── */
+          const reactionEntries = Object.entries(message.reactions || {});
           return (
-            <div className={isOwn ? "message own" : "message"} key={index}>
+            <div
+              className={isOwn ? "message own" : "message"}
+              key={index}
+              onMouseEnter={() => setHoveredMsg(index)}
+              onMouseLeave={() => setHoveredMsg(null)}
+            >
               {isGroupChat && !isOwn && (
                 <img
                   src={message.senderAvatar || "./avatar.png"}
@@ -334,8 +360,31 @@ const Chat = () => {
                 {message.img && <img src={message.img} alt="attachment" />}
                 {message.audio && <audio controls src={message.audio} className="voiceMessage" />}
                 {message.text && <p>{message.text}</p>}
+                {reactionEntries.length > 0 && (
+                  <div className="reactionPills">
+                    {reactionEntries.map(([emoji, users]) => (
+                      <button
+                        key={emoji}
+                        className={`reactionPill${users.includes(currentUser?.id) ? " reactionPillOwn" : ""}`}
+                        onClick={() => toggleReaction(index, emoji)}
+                        title={`${users.length} reaction${users.length !== 1 ? "s" : ""}`}
+                      >
+                        {emoji} {users.length > 1 && <span>{users.length}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <span className="msgTime">{formatTime(message.createdAt)}</span>
               </div>
+              {hoveredMsg === index && !isCurrentUserBlocked && !isRecieverBlocked && (
+                <div className={`emojiBar${isOwn ? " emojiBarOwn" : ""}`}>
+                  {REACTIONS.map((e) => (
+                    <button key={e} className="emojiBarBtn" onClick={() => toggleReaction(index, e)}>
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
