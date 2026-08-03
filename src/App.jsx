@@ -14,7 +14,7 @@ import CallModal from "./component/call/CallModal";
 
 const App = () => {
   const { currentUser, isLoading, fetchUserinfo, clearUser } = useUserStore();
-  const { chatId, resetChat, showSearch, setShowSearch } = useChatStore();
+  const { chatId, resetChat, showSearch, setShowSearch, showDetail } = useChatStore();
 
   useEffect(() => {
     const {
@@ -136,7 +136,7 @@ const App = () => {
           {chatId ? (
             <>
               <Chat />
-              <Detail />
+              {showDetail && <Detail />
             </>
           ) : (
             <div className="noChat">

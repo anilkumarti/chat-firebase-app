@@ -45,7 +45,7 @@ const Chat = () => {
 
   const {
     chatId, user, isGroupChat, groupInfo,
-    isCurrentUserBlocked, isRecieverBlocked, triggerChatListRefresh,
+    isCurrentUserBlocked, isRecieverBlocked, triggerChatListRefresh, toggleDetail,
   } = useChatStore();
   const { currentUser } = useUserStore();
   const { setPendingCall, setSignalCh } = useCallStore();
@@ -305,7 +305,7 @@ const Chat = () => {
               <img src="./video.png" alt="Video call" title="Video call" onClick={() => initiateCall("video")} />
             </>
           )}
-          <img src="./info.png" alt="info" />
+          <img src="./info.png" alt="info" title="Info" onClick={toggleDetail} style={{ cursor: "pointer" }} />
         </div>
       </div>
 

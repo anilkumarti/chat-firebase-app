@@ -12,6 +12,7 @@ const Detail = () => {
   const { currentUser, updateBlocked } = useUserStore();
   const [files, setFiles] = useState([]);
   const [members, setMembers] = useState([]);
+  const [photosOpen, setPhotosOpen] = useState(true);
 
   // Shared photos
   useEffect(() => {
@@ -120,27 +121,30 @@ const Detail = () => {
       </div>
       <div className="info">
         <div className="option">
-          <div className="title">
+          <div className="title" onClick={() => setPhotosOpen((p) => !p)} style={{ cursor: "pointer" }}>
             <span>Shared Photos</span>
-            <img src="./arrowDown.png" alt="expand" />
+            <img src="./arrowDown.png" alt="expand"
+              style={{ transition: "transform 0.2s", transform: photosOpen ? "rotate(0deg)" : "rotate(-90deg)" }} />
           </div>
-          <div className="photos">
-            {files.length > 0 ? (
-              files.map((file, index) => (
-                <div className="photoItem" key={index}>
-                  <div className="photoDetail">
-                    <img src={file} alt={`shared ${index + 1}`} />
-                    <span>{`photo_${index + 1}.png`}</span>
+          {photosOpen && (
+            <div className="photos">
+              {files.length > 0 ? (
+                files.map((file, index) => (
+                  <div className="photoItem" key={index}>
+                    <div className="photoDetail">
+                      <img src={file} alt={`shared ${index + 1}`} />
+                      <span>{`photo_${index + 1}.png`}</span>
+                    </div>
+                    <a href={file} download>
+                      <img src="./download.png" alt="download" className="icon" />
+                    </a>
                   </div>
-                  <a href={file} download>
-                    <img src="./download.png" alt="download" className="icon" />
-                  </a>
-                </div>
-              ))
-            ) : (
-              <p>No shared photos yet.</p>
-            )}
-          </div>
+                ))
+              ) : (
+                <p>No shared photos yet.</p>
+              )}
+            </div>
+          )}
         </div>
         {!isAIChat && (
           <button onClick={handleBlock}>

@@ -35,4 +35,8 @@ export const useChatStore = create((set) => ({
 
   showSearch: false,
   setShowSearch: (v) => set({ showSearch: v }),
+
+  showDetail: true,
+  setShowDetail: (v) => set({ showDetail: v }),
+  toggleDetail: () => set((state) => ({ showDetail: !state.showDetail })),
 }));
