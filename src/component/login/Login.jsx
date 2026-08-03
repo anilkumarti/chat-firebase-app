@@ -4,10 +4,26 @@ import "./Login.css";
 import { supabase } from "../../lib/Supabase";
 import upload from "../../lib/Upload";
 
+const EyeIcon = ({ open }) =>
+  open ? (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ) : (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+  );
+
 const Login = () => {
   const [mode, setMode] = useState("login");
   const [avatar, setAvatar] = useState({ file: null, url: "" });
   const [loading, setLoading] = useState(false);
+  const [showLoginPw, setShowLoginPw] = useState(false);
+  const [showSignupPw, setShowSignupPw] = useState(false);
 
   const switchMode = (next) => {
     if (avatar.url) URL.revokeObjectURL(avatar.url);
@@ -88,7 +104,12 @@ const Login = () => {
           <p className="subtitle">Sign in to continue chatting</p>
           <form onSubmit={handleLogin}>
             <input type="email" name="email" placeholder="Email address" />
-            <input type="password" name="password" placeholder="Password" />
+            <div className="pw-wrap">
+              <input type={showLoginPw ? "text" : "password"} name="password" placeholder="Password" />
+              <button type="button" className="pw-toggle" onClick={() => setShowLoginPw((v) => !v)}>
+                <EyeIcon open={showLoginPw} />
+              </button>
+            </div>
             <button disabled={loading}>{loading ? "Signing in…" : "Sign in"}</button>
           </form>
           <p className="switch-hint">
@@ -116,7 +137,12 @@ const Login = () => {
             />
             <input type="text" name="username" placeholder="Username" />
             <input type="email" name="email" placeholder="Email address" />
-            <input type="password" name="password" placeholder="Password" />
+            <div className="pw-wrap">
+              <input type={showSignupPw ? "text" : "password"} name="password" placeholder="Password" />
+              <button type="button" className="pw-toggle" onClick={() => setShowSignupPw((v) => !v)}>
+                <EyeIcon open={showSignupPw} />
+              </button>
+            </div>
             <button disabled={loading}>{loading ? "Creating account…" : "Create account"}</button>
           </form>
           <p className="switch-hint">
