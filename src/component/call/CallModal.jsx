@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { toast } from "react-toastify";
 import { useCallStore } from "../../lib/callStore";
 import { useUserStore } from "../../lib/UserStore";
 import { supabase } from "../../lib/Supabase";
@@ -130,6 +131,14 @@ const CallModal = () => {
       setIsScreenShare(false);
     }
   }, [activeCall, pendingCall, incomingCall]);
+
+  /* Auto-cut outgoing call after 60 s with no answer */
+  useEffect(() => {
+    if (pendingCall && !activeCall && ringDuration >= 60) {
+      hangUp();
+      toast.info("No answer — call ended automatically");
+    }
+  }, [ringDuration]);
 
   /* ── Signal helper ──────────────────────────────────────── */
   const sendSignal = (userId, payload) => {

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Chat from "./component/chat/Chat";
 import Detail from "./component/detail/Detail";
 import List from "./component/list/List";
@@ -15,6 +15,29 @@ import CallModal from "./component/call/CallModal";
 const App = () => {
   const { currentUser, isLoading, fetchUserinfo, clearUser } = useUserStore();
   const { chatId, resetChat, showSearch, setShowSearch, showDetail } = useChatStore();
+
+  const [listW, setListW]     = useState(280);
+  const [detailW, setDetailW] = useState(240);
+
+  const startResize = (panel, e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = panel === "list" ? listW : detailW;
+    const onMove = (me) => {
+      const delta = me.clientX - startX;
+      if (panel === "list") {
+        setListW(Math.max(200, Math.min(420, startW + delta)));
+      } else {
+        setDetailW(Math.max(180, Math.min(420, startW - delta)));
+      }
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
 
   useEffect(() => {
     const {
@@ -129,14 +152,20 @@ const App = () => {
   if (isLoading) return <div className="loading">Loading…</div>;
 
   return (
-    <div className="container">
+    <div className="container" style={{ "--list-w": `${listW}px`, "--detail-w": `${detailW}px` }}>
       {currentUser ? (
         <>
           <List />
+          <div className="resizeHandle" onMouseDown={(e) => startResize("list", e)} />
           {chatId ? (
             <>
               <Chat />
-              {showDetail && <Detail />}
+              {showDetail && (
+                <>
+                  <div className="resizeHandle" onMouseDown={(e) => startResize("detail", e)} />
+                  <Detail />
+                </>
+              )}
             </>
           ) : (
             <div className="noChat">

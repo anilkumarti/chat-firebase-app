@@ -343,7 +343,7 @@ const Chat = () => {
               isDeclined ? `Declined call` :
                            `${isVideo ? "Video" : "Voice"} call`;
             return (
-              <div key={index}>
+              <div key={index} className="msgRow">
                 {showDateSep && message.createdAt && (
                   <div className="dateSeparator"><span>{formatDateLabel(message.createdAt)}</span></div>
                 )}
@@ -364,7 +364,7 @@ const Chat = () => {
           /* ── Regular message ──────────────────── */
           const reactionEntries = Object.entries(message.reactions || {});
           return (
-            <div key={index}>
+            <div key={index} className="msgRow">
               {showDateSep && message.createdAt && (
                 <div className="dateSeparator"><span>{formatDateLabel(message.createdAt)}</span></div>
               )}

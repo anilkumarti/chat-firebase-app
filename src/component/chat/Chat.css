@@ -113,6 +113,12 @@
   border: 1px solid var(--bd);
 }
 
+/* ── Message row wrapper ────────────────────── */
+.msgRow {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Individual message ─────────────────────── */
 .chat .center .message {
   display: flex;
