@@ -69,12 +69,20 @@ const ChatList = () => {
 
   useEffect(() => {
     if (!currentUser?.id) return;
+    const refetch = () =>
+      supabase
+        .from("user_chats")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .single()
+        .then(({ data }) => buildChatList(data));
+
     const channel = supabase
       .channel(`user_chats:${currentUser.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_chats", filter: `user_id=eq.${currentUser.id}` },
-        ({ new: newRow }) => buildChatList(newRow)
+        refetch
       )
       .subscribe();
     return () => supabase.removeChannel(channel);
