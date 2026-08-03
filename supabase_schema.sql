@@ -6,8 +6,14 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT NOT NULL,
   email TEXT NOT NULL,
   avatar TEXT DEFAULT '',
-  blocked TEXT[] DEFAULT '{}'::TEXT[]
+  blocked TEXT[] DEFAULT '{}'::TEXT[],
+  phone TEXT DEFAULT NULL,
+  phone_contacts JSONB DEFAULT NULL
 );
+
+-- Run these if the table already exists:
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT NULL;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_contacts JSONB DEFAULT NULL;
 
 -- Chats table — TEXT primary key supports both UUIDs and the AI chat pattern
 CREATE TABLE IF NOT EXISTS chats (

@@ -61,7 +61,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     const formData = new FormData(e.target);
-    const { username, email, password } = Object.fromEntries(formData);
+    const { username, email, password, phone } = Object.fromEntries(formData);
 
     try {
       const { data, error } = await supabase.auth.signUp({ email, password });
@@ -76,6 +76,7 @@ const Login = () => {
         email,
         avatar: imgUrl,
         blocked: [],
+        phone: phone?.trim() || null,
       });
       if (profileError) throw profileError;
 
@@ -138,6 +139,7 @@ const Login = () => {
             />
             <input type="text" name="username" placeholder="Username" />
             <input type="email" name="email" placeholder="Email address" />
+            <input type="tel" name="phone" placeholder="Phone number (optional)" />
             <div className="pw-wrap">
               <input type={showSignupPw ? "text" : "password"} name="password" placeholder="Password" />
               <button type="button" className="pw-toggle" onClick={() => setShowSignupPw((v) => !v)}>
