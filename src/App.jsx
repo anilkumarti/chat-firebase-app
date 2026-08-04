@@ -162,7 +162,7 @@ const App = () => {
   if (isLoading) return <div className="loading">Loading…</div>;
 
   return (
-    <div className="container" style={{ "--list-w": `${listW}px`, "--detail-w": `${detailW}px` }}>
+    <div className={`container${chatId ? " hasChatOpen" : ""}`} style={{ "--list-w": `${listW}px`, "--detail-w": `${detailW}px` }}>
       {currentUser ? (
         <>
           <List />

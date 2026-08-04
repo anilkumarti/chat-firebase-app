@@ -170,5 +170,17 @@ body {
 }
 
 @media (max-width: 600px) {
-  :root { --list-w: 100%; }
+  :root { --list-w: 100vw; }
+
+  /* Show only list panel when no chat open */
+  .container .chat,
+  .container .noChat { display: none; }
+
+  /* Show only chat panel when a chat is open */
+  .container.hasChatOpen .list { display: none; }
+  .container.hasChatOpen .chat,
+  .container.hasChatOpen .noChat { display: flex; }
+
+  /* Hide resize handles on mobile */
+  .resizeHandle { display: none; }
 }

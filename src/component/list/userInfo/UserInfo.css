@@ -135,3 +135,11 @@
 .moreItemDanger:hover {
   background: rgba(229, 62, 62, 0.1);
 }
+
+/* Mobile / desktop visibility */
+.mobileOnly { display: none; }
+
+@media (max-width: 600px) {
+  .desktopOnly { display: none !important; }
+  .mobileOnly { display: flex; }
+}

@@ -440,10 +440,30 @@
   letter-spacing: 0.01em;
 }
 
+/* ── Back button (mobile only) ───────────────── */
+.backBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--t2);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--r6);
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color var(--t), background var(--t);
+}
+.backBtn:hover { color: var(--t1); background: var(--bg-hover); }
+
 /* ── Responsive ─────────────────────────────── */
 @media (max-width: 900px) {
   .chat .center .message { max-width: 82%; }
   .chat .center { padding: 12px 12px 8px; }
+}
+
+@media (max-width: 600px) {
+  .backBtn { display: flex; }
 }
 
 /* ── Call event bubbles ──────────────────────── */

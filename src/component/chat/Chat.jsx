@@ -62,7 +62,7 @@ const Chat = () => {
 
   const {
     chatId, user, isGroupChat, groupInfo,
-    isCurrentUserBlocked, isRecieverBlocked, triggerChatListRefresh, toggleDetail,
+    isCurrentUserBlocked, isRecieverBlocked, triggerChatListRefresh, toggleDetail, resetChat,
   } = useChatStore();
   const { currentUser } = useUserStore();
   const { setPendingCall, setSignalCh } = useCallStore();
@@ -310,6 +310,11 @@ const Chat = () => {
     <div className="chat">
       <div className="top">
         <div className="user">
+          <button className="backBtn" onClick={resetChat} title="Back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
           {isGroupChat ? (
             groupInfo?.avatar ? (
               <img src={groupInfo.avatar} alt="group" />
