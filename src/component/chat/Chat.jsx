@@ -132,11 +132,26 @@ const Chat = () => {
         await Promise.all(
           [currentUser.id, user.id].map(async (id) => {
             const { data: row } = await supabase.from("user_chats").select("*").eq("user_id", id).single();
-            const updatedChats = (row?.chats ?? []).map((c) =>
-              c.chatId === chatId
-                ? { ...c, lastMessage, isSeen: id === currentUser.id, updatedAt: Date.now() }
-                : c
-            );
+            const existing = (row?.chats ?? []).find((c) => c.chatId === chatId);
+            let updatedChats;
+            if (existing) {
+              updatedChats = (row?.chats ?? []).map((c) =>
+                c.chatId === chatId
+                  ? { ...c, lastMessage, isSeen: id === currentUser.id, updatedAt: Date.now() }
+                  : c
+              );
+            } else {
+              updatedChats = [
+                ...(row?.chats ?? []),
+                {
+                  chatId,
+                  lastMessage,
+                  receiverId: id === currentUser.id ? user.id : currentUser.id,
+                  isSeen: id === currentUser.id,
+                  updatedAt: Date.now(),
+                },
+              ];
+            }
             await supabase.from("user_chats").update({ chats: updatedChats }).eq("user_id", id);
           })
         );
@@ -390,17 +405,21 @@ const Chat = () => {
             const isVideo = message.callType === "video";
             const isMissed = message.status === "missed";
             const isDeclined = message.status === "declined";
+            const isOutgoing = message.initiatorId === currentUser?.id;
             const statusIcon = isMissed || isDeclined ? "📵" : isVideo ? "📹" : "📞";
-            const label =
-              isMissed   ? `Missed ${isVideo ? "video" : "voice"} call` :
-              isDeclined ? `Declined call` :
-                           `${isVideo ? "Video" : "Voice"} call`;
+            const label = isOutgoing
+              ? isMissed   ? "No answer"
+              : isDeclined ? "Declined"
+              :              `${isVideo ? "Video" : "Voice"} call`
+              : isMissed   ? `Missed ${isVideo ? "video" : "voice"} call`
+              : isDeclined ? "Declined call"
+              :              `${isVideo ? "Video" : "Voice"} call`;
             return (
               <div key={msgKey} className="msgRow">
                 {showDateSep && message.createdAt && (
                   <div className="dateSeparator"><span>{formatDateLabel(message.createdAt)}</span></div>
                 )}
-                <div className={`callEventMsg${isMissed || isDeclined ? " callEventMissed" : ""}`}>
+                <div className={`callEventMsg${isOutgoing ? " callEventOwn" : ""}${isMissed || isDeclined ? " callEventMissed" : ""}`}>
                   <span className="callEventIcon">{statusIcon}</span>
                   <div className="callEventBody">
                     <span className="callEventLabel">{label}</span>

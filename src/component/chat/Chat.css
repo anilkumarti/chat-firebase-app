@@ -553,7 +553,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  align-self: center;
+  align-self: flex-start;
   background: var(--bg-elevated, rgba(255,255,255,0.05));
   border: 1px solid var(--bd, rgba(255,255,255,0.08));
   border-radius: 14px;
@@ -561,6 +561,10 @@
   margin: 8px 0;
   max-width: 300px;
   width: fit-content;
+}
+
+.callEventMsg.callEventOwn {
+  align-self: flex-end;
 }
 
 .callEventMsg.callEventMissed {
