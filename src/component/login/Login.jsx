@@ -76,9 +76,13 @@ const Login = () => {
         email,
         avatar: imgUrl,
         blocked: [],
-        phone: phone?.trim() || null,
       });
       if (profileError) throw profileError;
+
+      // Save phone separately — silently skipped if the column doesn't exist yet
+      if (phone?.trim()) {
+        await supabase.from("users").update({ phone: phone.trim() }).eq("id", data.user.id);
+      }
 
       const { error: chatError } = await supabase.from("user_chats").insert({
         user_id: data.user.id,
