@@ -131,7 +131,17 @@ const Chat = () => {
       .channel(`chat:${chatId}`, { config: { broadcast: { self: false } } })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chats", filter: `id=eq.${chatId}` },
         fetchMessages)
-      .on("broadcast", { event: "new_message" }, fetchMessages)
+      .on("broadcast", { event: "new_message" }, ({ payload }) => {
+        if (payload?.message) {
+          setMessages((prev) => {
+            const key = `${payload.message.senderId}_${payload.message.createdAt}`;
+            if (prev.some((m) => `${m.senderId}_${m.createdAt}` === key)) return prev;
+            return [...prev, payload.message];
+          });
+        } else {
+          fetchMessages();
+        }
+      })
       .subscribe();
     chatChannelRef.current = channel;
     return () => {
@@ -239,8 +249,8 @@ const Chat = () => {
     [chatId, currentUser?.id, user?.id, isGroupChat, groupInfo, triggerChatListRefresh]
   );
 
-  const broadcastNewMessage = () => {
-    chatChannelRef.current?.send({ type: "broadcast", event: "new_message", payload: {} });
+  const broadcastNewMessage = (message) => {
+    chatChannelRef.current?.send({ type: "broadcast", event: "new_message", payload: { message } });
   };
 
   const handleEmoji = (e) => { setText((prev) => prev + e.emoji); setOpen(false); };
@@ -294,7 +304,7 @@ const Chat = () => {
           };
           const updated = [...(current?.messages ?? []), newMsg];
           const { error } = await supabase.from("chats").update({ messages: updated }).eq("id", chatId);
-          if (!error) { setMessages(updated); await updateUserChats("🎤 Voice message"); broadcastNewMessage(); }
+          if (!error) { setMessages(updated); await updateUserChats("🎤 Voice message"); broadcastNewMessage(newMsg); }
         } catch { toast.error("Failed to send voice message"); }
       };
       recorder.start();
@@ -409,7 +419,7 @@ const Chat = () => {
         if (error) throw error;
         setMessages(updated);
         await updateUserChats(text);
-        broadcastNewMessage();
+        broadcastNewMessage(newMessage);
       }
 
       if (img.url) URL.revokeObjectURL(img.url);
@@ -661,7 +671,7 @@ const Chat = () => {
             <EmojiPicker open={open} onEmojiClick={handleEmoji} />
           </div>
         </div>
-        <button className="sendButton" onClick={handleSend} disabled={inputDisabled || isRecording || isSending} title="Send">
+        <button className="sendButton" onClick={handleSend} disabled={inputDisabled || isRecording || isSending || (!text.trim() && !img.file)} title="Send">
           {isSending ? <span className="sendSpinner" /> : "➤"}
         </button>
       </div>

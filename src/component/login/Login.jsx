@@ -34,9 +34,22 @@ const Login = () => {
   const [showSignupPw,  setShowSignupPw]  = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
 
+  // Controlled field values used for button enable/disable
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPw, setLoginPw] = useState("");
+  const [regUsername, setRegUsername] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPw, setRegPw] = useState("");
+  const [regConfirmPw, setRegConfirmPw] = useState("");
+
+  const loginReady = !loading && loginEmail.trim() !== "" && loginPw !== "";
+  const signupReady = !loading && regUsername.trim() !== "" && regEmail.trim() !== "" && regPw !== "" && regConfirmPw !== "";
+
   const switchMode = (next) => {
     if (avatar.url) URL.revokeObjectURL(avatar.url);
     setAvatar({ file: null, url: "" });
+    setLoginEmail(""); setLoginPw("");
+    setRegUsername(""); setRegEmail(""); setRegPw(""); setRegConfirmPw("");
     setMode(next);
   };
 
@@ -137,14 +150,14 @@ const Login = () => {
           <h2>Welcome back</h2>
           <p className="subtitle">Sign in to continue chatting</p>
           <form onSubmit={handleLogin}>
-            <input type="email" name="email" placeholder="Email address" />
+            <input type="email" name="email" placeholder="Email address" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
             <div className="pw-wrap">
-              <input type={showLoginPw ? "text" : "password"} name="password" placeholder="Password" />
+              <input type={showLoginPw ? "text" : "password"} name="password" placeholder="Password" value={loginPw} onChange={(e) => setLoginPw(e.target.value)} />
               <button type="button" className="pw-toggle" onClick={() => setShowLoginPw((v) => !v)}>
                 <EyeIcon open={showLoginPw} />
               </button>
             </div>
-            <button disabled={loading}>{loading ? "Signing in…" : "Sign in"}</button>
+            <button disabled={!loginReady}>{loading ? "Signing in…" : "Sign in"}</button>
           </form>
           <p className="switch-hint">
             Don't have an account?{" "}
@@ -173,22 +186,22 @@ const Login = () => {
               onChange={handleAvatar}
               accept="image/*"
             />
-            <input type="text" name="username" placeholder="Username" />
-            <input type="email" name="email" placeholder="Email address" />
+            <input type="text" name="username" placeholder="Username" value={regUsername} onChange={(e) => setRegUsername(e.target.value)} />
+            <input type="email" name="email" placeholder="Email address" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} />
             <input type="tel" name="phone" placeholder="Phone number (optional)" />
             <div className="pw-wrap">
-              <input type={showSignupPw ? "text" : "password"} name="password" placeholder="Password" />
+              <input type={showSignupPw ? "text" : "password"} name="password" placeholder="Password" value={regPw} onChange={(e) => setRegPw(e.target.value)} />
               <button type="button" className="pw-toggle" onClick={() => setShowSignupPw((v) => !v)}>
                 <EyeIcon open={showSignupPw} />
               </button>
             </div>
             <div className="pw-wrap">
-              <input type={showConfirmPw ? "text" : "password"} name="confirmPassword" placeholder="Confirm password" />
+              <input type={showConfirmPw ? "text" : "password"} name="confirmPassword" placeholder="Confirm password" value={regConfirmPw} onChange={(e) => setRegConfirmPw(e.target.value)} />
               <button type="button" className="pw-toggle" onClick={() => setShowConfirmPw((v) => !v)}>
                 <EyeIcon open={showConfirmPw} />
               </button>
             </div>
-            <button disabled={loading}>{loading ? "Creating account…" : "Create account"}</button>
+            <button disabled={!signupReady}>{loading ? "Creating account…" : "Create account"}</button>
           </form>
           <p className="switch-hint">
             Already have an account?{" "}
