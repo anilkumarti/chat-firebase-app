@@ -119,6 +119,33 @@
   flex-direction: column;
 }
 
+/* ── Message loading skeleton ───────────────── */
+.msgLoadingWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px 0;
+  flex: 1;
+}
+
+.msgLoadingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.4;
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+
+.msgLoadingDot:nth-child(2) { animation-delay: 0.2s; }
+.msgLoadingDot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50%       { opacity: 0.9; transform: scale(1.1); }
+}
+
 /* ── Individual message ─────────────────────── */
 .chat .center .message {
   display: flex;
@@ -144,7 +171,7 @@
 
 /* Received bubble */
 .chat .center .message .texts p {
-  padding: 10px 14px 20px;
+  padding: 10px 14px 22px;
   background: var(--bg-surface);
   border: 1px solid var(--bd);
   border-radius: 18px 18px 18px 4px;
@@ -162,7 +189,7 @@
   border-radius: 18px 18px 4px 18px;
   color: #fff;
   box-shadow: 0 2px 12px rgba(59,109,226,.3);
-  padding: 10px 14px 20px;
+  padding: 10px 14px 22px;
 }
 
 /* Timestamp inside bubble */
@@ -365,6 +392,61 @@
   bottom: 52px;
   right: 0;
 }
+
+/* Disabled icon state (AI chat) */
+.chat .bottom .icons .iconDisabled,
+.chat .bottom .icons label.iconDisabled img {
+  opacity: 0.25 !important;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+/* Send spinner */
+.sendSpinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Image preview with cancel */
+.imgPreviewWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.imgPreviewWrap img {
+  display: block;
+  border-radius: 14px;
+  max-width: 100%;
+  max-height: 220px;
+}
+
+.cancelImgBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0,0,0,0.65);
+  border: none;
+  color: #fff;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.cancelImgBtn:hover { background: rgba(229,62,62,0.85); }
 
 /* Send button */
 .chat .bottom .sendButton {

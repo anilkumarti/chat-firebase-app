@@ -53,7 +53,7 @@ const Detail = () => {
       updateBlocked(blocked);
       changeBlock();
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   };
 

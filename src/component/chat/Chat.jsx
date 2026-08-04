@@ -55,6 +55,8 @@ const Chat = () => {
   const [text, setText] = useState("");
   const [img, setImg] = useState({ file: null, url: "" });
   const [messages, setMessages] = useState([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -68,6 +70,7 @@ const Chat = () => {
   const { setPendingCall, setSignalCh } = useCallStore();
 
   const endRef = useRef(null);
+  const emojiRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordingTimerRef = useRef(null);
 
@@ -75,19 +78,36 @@ const Chat = () => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (!emojiRef.current?.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
   useEffect(() => {
     if (!chatId) return;
     const isAI = chatId.startsWith("deepseek_ai_");
+
+    // Stop any active recording when switching chats
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+
     const fetchMessages = async () => {
+      setIsLoadingMessages(true);
       const { data } = await supabase.from("chats").select("messages").eq("id", chatId).single();
       setMessages(data?.messages ?? []);
+      setIsLoadingMessages(false);
     };
     fetchMessages();
     if (isAI) return;
+
     const channel = supabase
       .channel(`chat:${chatId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chats", filter: `id=eq.${chatId}` },
-        (payload) => setMessages(payload.new.messages ?? []))
+        fetchMessages)
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, [chatId]);
@@ -146,6 +166,11 @@ const Chat = () => {
       if (img.url) URL.revokeObjectURL(img.url);
       setImg({ file: e.target.files[0], url: URL.createObjectURL(e.target.files[0]) });
     }
+  };
+
+  const cancelImg = () => {
+    if (img.url) URL.revokeObjectURL(img.url);
+    setImg({ file: null, url: "" });
   };
 
   const handleCameraCapture = (file) => {
@@ -254,7 +279,9 @@ const Chat = () => {
   };
 
   const handleSend = async () => {
+    if (isSending) return;
     if (!text.trim() && !img.file) { toast.warning("Empty message"); return; }
+    setIsSending(true);
     let imgUrl = null;
     try {
       if (img.file) imgUrl = await upload(img.file);
@@ -292,8 +319,10 @@ const Chat = () => {
       setImg({ file: null, url: "" });
       setText("");
     } catch (error) {
-      console.log(error);
+      console.error(error);
       toast.error("Failed to send message");
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -345,10 +374,16 @@ const Chat = () => {
       </div>
 
       <div className="center">
+        {isLoadingMessages && (
+          <div className="msgLoadingWrap">
+            <span className="msgLoadingDot" /><span className="msgLoadingDot" /><span className="msgLoadingDot" />
+          </div>
+        )}
         {messages.map((message, index) => {
           const isOwn = message.senderId === currentUser?.id;
           const prevDate = messages[index - 1]?.createdAt;
           const showDateSep = !isSameDay(prevDate, message.createdAt);
+          const msgKey = `${message.senderId ?? "ai"}_${message.createdAt ?? index}_${index}`;
 
           /* ── Call event bubble ────────────────── */
           if (message.type === "call_event") {
@@ -361,7 +396,7 @@ const Chat = () => {
               isDeclined ? `Declined call` :
                            `${isVideo ? "Video" : "Voice"} call`;
             return (
-              <div key={index} className="msgRow">
+              <div key={msgKey} className="msgRow">
                 {showDateSep && message.createdAt && (
                   <div className="dateSeparator"><span>{formatDateLabel(message.createdAt)}</span></div>
                 )}
@@ -382,7 +417,7 @@ const Chat = () => {
           /* ── Regular message ──────────────────── */
           const reactionEntries = Object.entries(message.reactions || {});
           return (
-            <div key={index} className="msgRow">
+            <div key={msgKey} className="msgRow">
               {showDateSep && message.createdAt && (
                 <div className="dateSeparator"><span>{formatDateLabel(message.createdAt)}</span></div>
               )}
@@ -404,7 +439,11 @@ const Chat = () => {
                 )}
                 {message.img && <img src={message.img} alt="attachment" />}
                 {message.audio && <audio controls src={message.audio} className="voiceMessage" />}
-                {message.text && <p>{message.text}</p>}
+                {message.text ? (
+                  <p>{message.text}<span className="msgTime">{formatTime(message.createdAt)}</span></p>
+                ) : (
+                  <span className="msgTime">{formatTime(message.createdAt)}</span>
+                )}
                 {reactionEntries.length > 0 && (
                   <div className="reactionPills">
                     {reactionEntries.map(([emoji, users]) => (
@@ -419,7 +458,6 @@ const Chat = () => {
                     ))}
                   </div>
                 )}
-                <span className="msgTime">{formatTime(message.createdAt)}</span>
               </div>
               {hoveredMsg === index && !isCurrentUserBlocked && !isRecieverBlocked && (
                 <div className={`emojiBar${isOwn ? " emojiBarOwn" : ""}`}>
@@ -435,9 +473,14 @@ const Chat = () => {
           );
         })}
         {img.url && (
-          <div className="message own">
-            <div className="texts">
-              <img src={img.url} alt="preview" />
+          <div className="msgRow">
+            <div className="message own">
+              <div className="texts">
+                <div className="imgPreviewWrap">
+                  <img src={img.url} alt="preview" />
+                  <button className="cancelImgBtn" onClick={cancelImg} title="Remove image">✕</button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -446,17 +489,16 @@ const Chat = () => {
 
       <div className="bottom">
         <div className="icons">
-          <label htmlFor="file">
+          <label htmlFor="file" className={isAIChat ? "iconDisabled" : ""} title="Attach image">
             <img src="./img.png" alt="image" />
           </label>
-          <input type="file" id="file" style={{ display: "none" }} onChange={handleImg} accept="image/*" />
+          <input type="file" id="file" style={{ display: "none" }} onChange={isAIChat ? undefined : handleImg} accept="image/*" disabled={isAIChat} />
           <img src="./camera.png" alt="camera" title="Take photo"
             onClick={() => !isAIChat && setCameraOpen(true)}
-            style={{ opacity: isAIChat ? 0.3 : undefined }} />
+            className={isAIChat ? "iconDisabled" : ""} />
           <img src="./mic.png" alt="mic" title={isRecording ? "Stop recording" : "Voice message"}
             onClick={() => !isAIChat && handleMicToggle()}
-            className={isRecording ? "micActive" : ""}
-            style={{ opacity: isAIChat ? 0.3 : undefined }} />
+            className={`${isRecording ? "micActive" : ""} ${isAIChat ? "iconDisabled" : ""}`} />
         </div>
 
         {isRecording ? (
@@ -476,14 +518,14 @@ const Chat = () => {
           />
         )}
 
-        <div className="emoji">
+        <div className="emoji" ref={emojiRef}>
           <img src="./emoji.png" alt="emoji" onClick={() => setOpen((prev) => !prev)} />
           <div className="picker">
             <EmojiPicker open={open} onEmojiClick={handleEmoji} />
           </div>
         </div>
-        <button className="sendButton" onClick={handleSend} disabled={inputDisabled || isRecording} title="Send">
-          ➤
+        <button className="sendButton" onClick={handleSend} disabled={inputDisabled || isRecording || isSending} title="Send">
+          {isSending ? <span className="sendSpinner" /> : "➤"}
         </button>
       </div>
 

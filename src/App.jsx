@@ -88,6 +88,8 @@ const App = () => {
 
         switch (payload.type) {
           case "offer":
+            // Ignore if already in a call
+            if (store.activeCall || store.pendingCall) break;
             store.setIncomingCall({
               fromUser: payload.fromUser,
               callType: payload.callType,

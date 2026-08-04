@@ -18,12 +18,21 @@ const EyeIcon = ({ open }) =>
     </svg>
   );
 
+const UploadIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <circle cx="12" cy="10" r="3"/>
+    <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>
+  </svg>
+);
+
 const Login = () => {
   const [mode, setMode] = useState("login");
   const [avatar, setAvatar] = useState({ file: null, url: "" });
   const [loading, setLoading] = useState(false);
-  const [showLoginPw, setShowLoginPw] = useState(false);
-  const [showSignupPw, setShowSignupPw] = useState(false);
+  const [showLoginPw,   setShowLoginPw]   = useState(false);
+  const [showSignupPw,  setShowSignupPw]  = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
 
   const switchMode = (next) => {
     if (avatar.url) URL.revokeObjectURL(avatar.url);
@@ -43,15 +52,23 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
     const formData = new FormData(e.target);
     const { email, password } = Object.fromEntries(formData);
+
+    if (!email.trim())  { toast.error("Email is required"); return; }
+    if (!password)      { toast.error("Password is required"); return; }
+
+    setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast.success("Logged in successfully");
     } catch (error) {
-      toast.error(error.message);
+      if (error.message?.toLowerCase().includes("email not confirmed")) {
+        toast.error("Please confirm your email address before signing in.");
+      } else {
+        toast.error(error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -59,10 +76,15 @@ const Login = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setLoading(true);
     const formData = new FormData(e.target);
-    const { username, email, password, phone } = Object.fromEntries(formData);
+    const { username, email, password, confirmPassword, phone } = Object.fromEntries(formData);
 
+    if (!username.trim())             { toast.error("Username is required"); return; }
+    if (!email.trim())                { toast.error("Email is required"); return; }
+    if (!password)                    { toast.error("Password is required"); return; }
+    if (password !== confirmPassword) { toast.error("Passwords don't match"); return; }
+
+    setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
@@ -79,7 +101,6 @@ const Login = () => {
       });
       if (profileError) throw profileError;
 
-      // Save phone separately — silently skipped if the column doesn't exist yet
       if (phone?.trim()) {
         await supabase.from("users").update({ phone: phone.trim() }).eq("id", data.user.id);
       }
@@ -91,7 +112,14 @@ const Login = () => {
       if (chatError) throw chatError;
 
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) throw signInError;
+      if (signInError) {
+        if (signInError.message?.toLowerCase().includes("email not confirmed")) {
+          toast.info("Account created! Check your email to confirm before signing in.");
+        } else {
+          throw signInError;
+        }
+        return;
+      }
 
       sessionStorage.setItem("chatapp_just_signed_up", "1");
       toast.success("Welcome! You're now signed in.");
@@ -131,7 +159,11 @@ const Login = () => {
           <p className="subtitle">Join and start chatting</p>
           <form onSubmit={handleRegister}>
             <label htmlFor="file" className="avatar-label">
-              <img src={avatar.url || "./avatar.png"} alt="avatar" />
+              {avatar.url ? (
+                <img src={avatar.url} alt="avatar" />
+              ) : (
+                <span className="avatar-placeholder"><UploadIcon /></span>
+              )}
               <span>{avatar.file ? avatar.file.name : "Upload a profile photo"}</span>
             </label>
             <input
@@ -148,6 +180,12 @@ const Login = () => {
               <input type={showSignupPw ? "text" : "password"} name="password" placeholder="Password" />
               <button type="button" className="pw-toggle" onClick={() => setShowSignupPw((v) => !v)}>
                 <EyeIcon open={showSignupPw} />
+              </button>
+            </div>
+            <div className="pw-wrap">
+              <input type={showConfirmPw ? "text" : "password"} name="confirmPassword" placeholder="Confirm password" />
+              <button type="button" className="pw-toggle" onClick={() => setShowConfirmPw((v) => !v)}>
+                <EyeIcon open={showConfirmPw} />
               </button>
             </div>
             <button disabled={loading}>{loading ? "Creating account…" : "Create account"}</button>

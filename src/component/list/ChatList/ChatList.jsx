@@ -131,7 +131,7 @@ const ChatList = () => {
           .eq("user_id", currentUser.id);
         changeGroup(chat.chatId, chat.group);
       } catch (err) {
-        console.log(err);
+        console.error(err);
       }
       return;
     }
@@ -151,7 +151,7 @@ const ChatList = () => {
         .eq("user_id", currentUser.id);
       changeChat(chat.chatId, chat.user);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   };
 

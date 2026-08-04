@@ -89,6 +89,7 @@ const CallModal = () => {
   const localVideoRef  = useRef(null);
   const callTimerRef   = useRef(null);
   const ringTimerRef   = useRef(null);
+  const facingModeRef  = useRef("user");
 
   const [isMuted,        setIsMuted]        = useState(false);
   const [isCamOff,       setIsCamOff]       = useState(false);
@@ -96,6 +97,8 @@ const CallModal = () => {
   const [callDuration,   setCallDuration]   = useState(0);
   const [ringDuration,   setRingDuration]   = useState(0);
   const [facingMode,     setFacingMode]     = useState("user");
+
+  const updateFacingMode = (v) => { facingModeRef.current = v; setFacingMode(v); };
 
   /* Wire remote stream — audio calls use <audio>, video calls use <video> */
   useEffect(() => {
@@ -123,7 +126,8 @@ const CallModal = () => {
     return () => clearInterval(callTimerRef.current);
   }, [!!activeCall]);
 
-  /* Outgoing ringing timer */
+  /* Outgoing ringing timer — use pendingCall identity (not boolean) so timer
+     resets if a new call starts while one is already pending */
   useEffect(() => {
     if (pendingCall && !activeCall) {
       setRingDuration(0);
@@ -133,7 +137,7 @@ const CallModal = () => {
       setRingDuration(0);
     }
     return () => clearInterval(ringTimerRef.current);
-  }, [!!pendingCall, !!activeCall]);
+  }, [pendingCall?.toUser?.id, !!activeCall]);
 
   /* Reset UI when all calls end */
   useEffect(() => {
@@ -141,7 +145,7 @@ const CallModal = () => {
       setIsMuted(false);
       setIsCamOff(false);
       setIsScreenShare(false);
-      setFacingMode("user");
+      updateFacingMode("user");
     }
   }, [activeCall, pendingCall, incomingCall]);
 
@@ -245,7 +249,7 @@ const CallModal = () => {
   const flipCamera = async () => {
     const peer = activeCall?.peer;
     if (!peer) return;
-    const newFacing = facingMode === "user" ? "environment" : "user";
+    const newFacing = facingModeRef.current === "user" ? "environment" : "user";
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { exact: newFacing } },
@@ -258,7 +262,7 @@ const CallModal = () => {
       if (sndr) await sndr.replaceTrack(track);
       if (localVideoRef.current)
         localVideoRef.current.srcObject = new MediaStream([track, ...activeCall.localStream.getAudioTracks()]);
-      setFacingMode(newFacing);
+      updateFacingMode(newFacing);
     } catch {
       toast.error("Could not flip camera");
     }
@@ -269,7 +273,7 @@ const CallModal = () => {
     if (!peer) return;
     try {
       if (isScreenShare) {
-        const cam   = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
+        const cam   = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingModeRef.current }, audio: false });
         const track = cam.getVideoTracks()[0];
         const sndr  = peer.getSenders().find((s) => s.track?.kind === "video");
         if (sndr) {
@@ -287,9 +291,10 @@ const CallModal = () => {
           if (localVideoRef.current)
             localVideoRef.current.srcObject = new MediaStream([track, ...activeCall.localStream.getAudioTracks()]);
         }
+        // Use ref so onended always gets the current facingMode, not the closure value
         track.onended = async () => {
           try {
-            const cam = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
+            const cam = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingModeRef.current }, audio: false });
             const ct  = cam.getVideoTracks()[0];
             const snd = peer.getSenders().find((s) => s.track?.kind === "video");
             if (snd) await snd.replaceTrack(ct);
