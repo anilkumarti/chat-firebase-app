@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
-import { fetchAIResponse, fetchReplySuggestions } from "../../lib/ai";
+import { fetchAIResponse, fetchReplySuggestions, summarizeConversation, rewriteMessage, transcribeAudio, translateMessage } from "../../lib/ai";
 import "./Chat.css";
 import { supabase } from "../../lib/Supabase";
 import { useChatStore } from "../../lib/chatStore";
@@ -64,6 +64,13 @@ const Chat = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [isFetchingSugg, setIsFetchingSugg] = useState(false);
   const [showSugg, setShowSugg] = useState(false);
+  const [summary, setSummary] = useState("");
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [isRewriting, setIsRewriting] = useState(false);
+  const [showToneMenu, setShowToneMenu] = useState(false);
+  const [transcripts, setTranscripts] = useState({});
+  const [translations, setTranslations] = useState({});
 
   const {
     chatId, user, isGroupChat, groupInfo,
@@ -76,6 +83,8 @@ const Chat = () => {
   const emojiRef = useRef(null);
   const suggPopupRef = useRef(null);
   const suggBtnRef = useRef(null);
+  const toneMenuRef = useRef(null);
+  const toneMenuBtnRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordingTimerRef = useRef(null);
   const chatChannelRef = useRef(null);
@@ -103,10 +112,26 @@ const Chat = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, [showSugg]);
 
-  // Reset suggestions when switching chats
+  // Close tone menu on outside click
+  useEffect(() => {
+    if (!showToneMenu) return;
+    const handler = (e) => {
+      if (!toneMenuRef.current?.contains(e.target) && !toneMenuBtnRef.current?.contains(e.target))
+        setShowToneMenu(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showToneMenu]);
+
+  // Reset all AI UI state when switching chats
   useEffect(() => {
     setShowSugg(false);
     setSuggestions([]);
+    setShowSummary(false);
+    setSummary("");
+    setShowToneMenu(false);
+    setTranscripts({});
+    setTranslations({});
   }, [chatId]);
 
   useEffect(() => {
@@ -374,6 +399,7 @@ const Chat = () => {
 
   const handleSuggestReplies = async () => {
     if (isFetchingSugg) return;
+    setShowToneMenu(false);
     if (showSugg) { setShowSugg(false); return; }
     setShowSugg(true);
     setIsFetchingSugg(true);
@@ -381,6 +407,43 @@ const Chat = () => {
     const result = await fetchReplySuggestions(messages, currentUser.id);
     setSuggestions(result);
     setIsFetchingSugg(false);
+  };
+
+  const handleSummarize = async () => {
+    if (isSummarizing) return;
+    setShowSummary(true);
+    setSummary("");
+    setIsSummarizing(true);
+    const result = await summarizeConversation(messages, currentUser.id);
+    setSummary(result);
+    setIsSummarizing(false);
+  };
+
+  const handleToneMenuToggle = () => {
+    if (isRewriting) return;
+    setShowSugg(false);
+    setShowToneMenu((v) => !v);
+  };
+
+  const handleRewrite = async (tone) => {
+    if (!text.trim() || isRewriting) return;
+    setShowToneMenu(false);
+    setIsRewriting(true);
+    const result = await rewriteMessage(text, tone);
+    setText(result);
+    setIsRewriting(false);
+  };
+
+  const handleTranscribe = async (stableKey, audioUrl) => {
+    setTranscripts((prev) => ({ ...prev, [stableKey]: "__loading__" }));
+    const result = await transcribeAudio(audioUrl);
+    setTranscripts((prev) => ({ ...prev, [stableKey]: result || "Could not transcribe." }));
+  };
+
+  const handleTranslate = async (stableKey, msgText) => {
+    setTranslations((prev) => ({ ...prev, [stableKey]: "__loading__" }));
+    const result = await translateMessage(msgText);
+    setTranslations((prev) => ({ ...prev, [stableKey]: result }));
   };
 
   const handleSend = async () => {
@@ -476,11 +539,27 @@ const Chat = () => {
               <img src="./video.png" alt="Video call" title="Video call" onClick={() => initiateCall("video")} />
             </>
           )}
+          {!isAIChat && messages.filter((m) => m.text).length >= 3 && (
+            <button className="headerAiBtn" onClick={handleSummarize} disabled={isSummarizing} title="Summarize conversation">
+              {isSummarizing ? <span className="suggestSpinner" /> : "📋"}
+            </button>
+          )}
           <img src="./info.png" alt="info" title="Info" onClick={toggleDetail} style={{ cursor: "pointer" }} />
         </div>
       </div>
 
       <div className="center">
+        {showSummary && (
+          <div className="summaryPanel">
+            <div className="summaryPanelHeader">
+              <span>📋 Conversation Summary</span>
+              <button className="summaryCloseBtn" onClick={() => { setShowSummary(false); setSummary(""); }}>✕</button>
+            </div>
+            {isSummarizing
+              ? <div className="summaryLoading"><span className="suggestSpinner" /> Summarizing…</div>
+              : <div className="summaryContent">{summary}</div>}
+          </div>
+        )}
         {isLoadingMessages && (
           <div className="msgLoadingWrap">
             <span className="msgLoadingDot" /><span className="msgLoadingDot" /><span className="msgLoadingDot" />
@@ -527,6 +606,7 @@ const Chat = () => {
 
           /* ── Regular message ──────────────────── */
           const reactionEntries = Object.entries(message.reactions || {});
+          const stableKey = `${message.senderId ?? "ai"}_${message.createdAt ?? index}`;
           return (
             <div key={msgKey} className="msgRow">
               {showDateSep && message.createdAt && (
@@ -549,9 +629,28 @@ const Chat = () => {
                   <span className="senderName">{message.senderName}</span>
                 )}
                 {message.img && <img src={message.img} alt="attachment" />}
-                {message.audio && <audio controls src={message.audio} className="voiceMessage" />}
+                {message.audio && (
+                  <>
+                    <audio controls src={message.audio} className="voiceMessage" />
+                    {(() => {
+                      const tr = transcripts[stableKey];
+                      if (tr === "__loading__") return <span className="transcribingText"><span className="suggestSpinner" /> Transcribing…</span>;
+                      if (tr) return <p className="transcriptText">"{tr}"</p>;
+                      return <button className="transcribeBtn" onClick={() => handleTranscribe(stableKey, message.audio)}>🔤 Transcribe</button>;
+                    })()}
+                  </>
+                )}
                 {message.text ? (
-                  <p>{message.text}<span className="msgTime">{formatTime(message.createdAt)}</span></p>
+                  <>
+                    <p>{message.text}<span className="msgTime">{formatTime(message.createdAt)}</span></p>
+                    {!isOwn && !isAIChat && (() => {
+                      const tl = translations[stableKey];
+                      if (tl === "__loading__") return <span className="translatingText"><span className="suggestSpinner" /> Translating…</span>;
+                      if (tl) return <p className="translatedText">{tl}</p>;
+                      if (hoveredMsg === index) return <button className="translateBtn" onClick={() => handleTranslate(stableKey, message.text)}>🌐 Translate</button>;
+                      return null;
+                    })()}
+                  </>
                 ) : (
                   <span className="msgTime">{formatTime(message.createdAt)}</span>
                 )}
@@ -645,6 +744,27 @@ const Chat = () => {
             >
               {isFetchingSugg ? <span className="suggestSpinner" /> : "✨"}
             </button>
+          )}
+          {!isAIChat && !inputDisabled && text.trim() && (
+            <button
+              ref={toneMenuBtnRef}
+              className={`aiReplyBtn${showToneMenu ? " aiReplyBtnActive" : ""}`}
+              onClick={handleToneMenuToggle}
+              disabled={isRewriting}
+              title="Rewrite tone"
+            >
+              {isRewriting ? <span className="suggestSpinner" /> : "✏️"}
+            </button>
+          )}
+          {showToneMenu && (
+            <div ref={toneMenuRef} className="toneMenu">
+              <div className="toneMenuHeader">Rewrite as…</div>
+              {["casual", "formal", "friendlier", "shorter"].map((tone) => (
+                <button key={tone} className="tonePill" onClick={() => handleRewrite(tone)}>
+                  {tone === "casual" ? "😎 Casual" : tone === "formal" ? "👔 Formal" : tone === "friendlier" ? "😊 Friendlier" : "✂️ Shorter"}
+                </button>
+              ))}
+            </div>
           )}
         </div>
 

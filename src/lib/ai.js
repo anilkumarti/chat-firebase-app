@@ -27,6 +27,72 @@ export const fetchAIResponse = async (message, history = [], userId = null) => {
   }
 };
 
+export const summarizeConversation = async (messages, userId) => {
+  const textMsgs = messages.filter((m) => m.text?.trim()).slice(-30);
+  if (textMsgs.length < 3) return "Not enough messages to summarize.";
+  const convo = textMsgs.map((m) => `${m.senderId === userId ? "Me" : "Them"}: ${m.text}`).join("\n");
+  const prompt = `Summarize this chat conversation in 3–5 concise bullet points. Cover what was discussed, any decisions, and key info shared. Use plain bullet points (no markdown headers).\n\nConversation:\n${convo}`;
+  try {
+    const data = await groqFetch([{ role: "user", content: prompt }], 0.4);
+    return data.choices?.[0]?.message?.content?.trim() || "Could not generate summary.";
+  } catch (err) {
+    console.error("summarizeConversation:", err);
+    return "Could not generate summary.";
+  }
+};
+
+export const rewriteMessage = async (text, tone) => {
+  const instructions = {
+    casual:     "Rewrite this message in a casual, relaxed tone — like texting a friend.",
+    formal:     "Rewrite this message in a professional, formal tone.",
+    friendlier: "Rewrite this message in a warm, friendly, and more positive tone.",
+    shorter:    "Make this message more concise — same meaning, fewer words.",
+  };
+  const prompt = `${instructions[tone] || "Rewrite this message."}\nReturn ONLY the rewritten message, nothing else.\n\nOriginal: ${text}`;
+  try {
+    const data = await groqFetch([{ role: "user", content: prompt }], 0.7);
+    return data.choices?.[0]?.message?.content?.trim() || text;
+  } catch (err) {
+    console.error("rewriteMessage:", err);
+    return text;
+  }
+};
+
+export const transcribeAudio = async (audioUrl) => {
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+  if (!apiKey) return "";
+  try {
+    const audioRes = await fetch(audioUrl);
+    const blob = await audioRes.blob();
+    const file = new File([blob], "voice.webm", { type: blob.type || "audio/webm" });
+    const form = new FormData();
+    form.append("file", file);
+    form.append("model", "whisper-large-v3-turbo");
+    const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message);
+    return data.text?.trim() || "";
+  } catch (err) {
+    console.error("transcribeAudio:", err);
+    return "";
+  }
+};
+
+export const translateMessage = async (text) => {
+  const prompt = `Detect the language of the following message and translate it to English. If it is already in English, return it unchanged. Return ONLY the translated text, nothing else.\n\n${text}`;
+  try {
+    const data = await groqFetch([{ role: "user", content: prompt }], 0.3);
+    return data.choices?.[0]?.message?.content?.trim() || text;
+  } catch (err) {
+    console.error("translateMessage:", err);
+    return text;
+  }
+};
+
 export const fetchReplySuggestions = async (messages, userId) => {
   const textMsgs = messages.filter((m) => m.text?.trim());
   const recent = textMsgs.slice(-12);
