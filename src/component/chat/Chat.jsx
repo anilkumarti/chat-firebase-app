@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
-import { fetchAIResponse } from "../../lib/ai";
+import { fetchAIResponse, fetchReplySuggestions } from "../../lib/ai";
 import "./Chat.css";
 import { supabase } from "../../lib/Supabase";
 import { useChatStore } from "../../lib/chatStore";
@@ -61,6 +61,9 @@ const Chat = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [hoveredMsg, setHoveredMsg] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [isFetchingSugg, setIsFetchingSugg] = useState(false);
+  const [showSugg, setShowSugg] = useState(false);
 
   const {
     chatId, user, isGroupChat, groupInfo,
@@ -71,6 +74,8 @@ const Chat = () => {
 
   const endRef = useRef(null);
   const emojiRef = useRef(null);
+  const suggPopupRef = useRef(null);
+  const suggBtnRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordingTimerRef = useRef(null);
   const chatChannelRef = useRef(null);
@@ -86,6 +91,23 @@ const Chat = () => {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  // Close suggestions popup on outside click
+  useEffect(() => {
+    if (!showSugg) return;
+    const handler = (e) => {
+      if (!suggPopupRef.current?.contains(e.target) && !suggBtnRef.current?.contains(e.target))
+        setShowSugg(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showSugg]);
+
+  // Reset suggestions when switching chats
+  useEffect(() => {
+    setShowSugg(false);
+    setSuggestions([]);
+  }, [chatId]);
 
   useEffect(() => {
     if (!chatId) return;
@@ -340,6 +362,17 @@ const Chat = () => {
     await supabase.from("chats").update({ messages: updated }).eq("id", chatId);
   };
 
+  const handleSuggestReplies = async () => {
+    if (isFetchingSugg) return;
+    if (showSugg) { setShowSugg(false); return; }
+    setShowSugg(true);
+    setIsFetchingSugg(true);
+    setSuggestions([]);
+    const result = await fetchReplySuggestions(messages, currentUser.id);
+    setSuggestions(result);
+    setIsFetchingSugg(false);
+  };
+
   const handleSend = async () => {
     if (isSending) return;
     if (!text.trim() && !img.file) { toast.warning("Empty message"); return; }
@@ -556,6 +589,31 @@ const Chat = () => {
       </div>
 
       <div className="bottom">
+        {showSugg && !isAIChat && (
+          <div className="suggestionsPopup" ref={suggPopupRef}>
+            <div className="suggestionsHeader">
+              <span>✨ Reply suggestions</span>
+              <button className="suggClose" onClick={() => setShowSugg(false)}>✕</button>
+            </div>
+            {isFetchingSugg ? (
+              <div className="suggestionsLoading">
+                <span className="suggestSpinner" /> Generating…
+              </div>
+            ) : suggestions.length > 0 ? (
+              suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  className="suggestionPill"
+                  onClick={() => { setText(s); setShowSugg(false); }}
+                >
+                  {s}
+                </button>
+              ))
+            ) : (
+              <p className="suggestionsEmpty">Could not generate suggestions. Try again.</p>
+            )}
+          </div>
+        )}
         <div className="icons">
           <label htmlFor="file" className={isAIChat ? "iconDisabled" : ""} title="Attach image">
             <img src="./img.png" alt="image" />
@@ -567,6 +625,17 @@ const Chat = () => {
           <img src="./mic.png" alt="mic" title={isRecording ? "Stop recording" : "Voice message"}
             onClick={() => !isAIChat && handleMicToggle()}
             className={`${isRecording ? "micActive" : ""} ${isAIChat ? "iconDisabled" : ""}`} />
+          {!isAIChat && !inputDisabled && (
+            <button
+              ref={suggBtnRef}
+              className={`aiReplyBtn${showSugg ? " aiReplyBtnActive" : ""}`}
+              onClick={handleSuggestReplies}
+              disabled={isFetchingSugg}
+              title="AI reply suggestions"
+            >
+              {isFetchingSugg ? <span className="suggestSpinner" /> : "✨"}
+            </button>
+          )}
         </div>
 
         {isRecording ? (

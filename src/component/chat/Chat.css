@@ -262,6 +262,7 @@
   border-top: 1px solid var(--bd);
   background: var(--bg-chat);
   flex-shrink: 0;
+  position: relative;
 }
 
 .chat .bottom .icons {
@@ -476,6 +477,131 @@
   opacity: 0.3;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+/* ── AI Reply Suggestions ───────────────────── */
+.aiReplyBtn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  flex-shrink: 0;
+  transition: opacity var(--t), background var(--t);
+}
+
+.aiReplyBtn:hover:not(:disabled) {
+  opacity: 1;
+  background: var(--bg-hover);
+}
+
+.aiReplyBtn.aiReplyBtnActive {
+  opacity: 1;
+  background: rgba(124,106,245,0.12);
+}
+
+.aiReplyBtn:disabled { cursor: not-allowed; }
+
+.suggestSpinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(124,106,245,0.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.suggestionsPopup {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 14px;
+  right: 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  padding: 10px 10px 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.suggestionsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 4px;
+  border-bottom: 1px solid var(--bd);
+  margin-bottom: 2px;
+}
+
+.suggestionsHeader > span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.suggClose {
+  background: transparent;
+  border: none;
+  color: var(--t3);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  line-height: 1;
+  transition: color var(--t), background var(--t);
+}
+
+.suggClose:hover { color: var(--t1); background: var(--bg-hover); }
+
+.suggestionPill {
+  width: 100%;
+  text-align: left;
+  background: var(--bg-surface);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  padding: 9px 13px;
+  color: var(--t1);
+  font-size: 13.5px;
+  font-family: inherit;
+  cursor: pointer;
+  line-height: 1.45;
+  transition: background var(--t), border-color var(--t);
+}
+
+.suggestionPill:hover {
+  background: rgba(124,106,245,0.1);
+  border-color: var(--accent);
+}
+
+.suggestionsLoading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  color: var(--t3);
+  font-size: 13px;
+}
+
+.suggestionsEmpty {
+  color: var(--t3);
+  font-size: 13px;
+  text-align: center;
+  padding: 8px 4px;
+  margin: 0;
 }
 
 /* ── Group chat header avatar ───────────────── */
