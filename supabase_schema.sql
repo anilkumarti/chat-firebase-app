@@ -58,8 +58,43 @@ CREATE POLICY "Authenticated can update chats" ON chats FOR UPDATE USING (auth.r
 CREATE POLICY "Users read own user_chats" ON user_chats FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users insert own user_chats" ON user_chats FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users update own user_chats" ON user_chats FOR UPDATE USING (auth.uid() = user_id);
--- Needed so user B can update user A's chat list when adding a contact
+-- Needed so user B can update user A's chat list when adding a contact or sending a message
 CREATE POLICY "Authenticated update any user_chats" ON user_chats FOR UPDATE USING (auth.role() = 'authenticated');
+-- Needed so the sender can read the receiver's existing chats before merging in a new
+-- entry (without this, receiverRow reads come back empty under RLS and every write
+-- looks like it silently overwrites the receiver's whole chat list with just one entry)
+CREATE POLICY "Authenticated read any user_chats" ON user_chats FOR SELECT USING (auth.role() = 'authenticated');
+
+-- ── Fix for a previously broken/missing policy ─────────────────────────────
+-- If "Authenticated update any user_chats" / "Authenticated read any user_chats" already
+-- exist from an earlier partial run, CREATE POLICY above will error with "already exists".
+-- Run this block instead (or first) to safely (re)create both, idempotently:
+--
+-- DROP POLICY IF EXISTS "Authenticated update any user_chats" ON user_chats;
+-- CREATE POLICY "Authenticated update any user_chats" ON user_chats FOR UPDATE USING (auth.role() = 'authenticated');
+-- DROP POLICY IF EXISTS "Authenticated read any user_chats" ON user_chats;
+-- CREATE POLICY "Authenticated read any user_chats" ON user_chats FOR SELECT USING (auth.role() = 'authenticated');
+
+-- ── Guarantee every user has a user_chats row ──────────────────────────────
+-- Backstops the client-side insert in Login.jsx in case it ever fails/races.
+CREATE OR REPLACE FUNCTION ensure_user_chats_row()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  INSERT INTO user_chats (user_id, chats) VALUES (NEW.id, '[]'::jsonb)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_ensure_user_chats_row ON users;
+CREATE TRIGGER trg_ensure_user_chats_row
+  AFTER INSERT ON users
+  FOR EACH ROW EXECUTE FUNCTION ensure_user_chats_row();
+
+-- Backfill any existing users missing a user_chats row
+INSERT INTO user_chats (user_id, chats)
+SELECT u.id, '[]'::jsonb FROM users u
+WHERE NOT EXISTS (SELECT 1 FROM user_chats uc WHERE uc.user_id = u.id);
 
 -- ── Groups (for group chat feature) ────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS groups (
