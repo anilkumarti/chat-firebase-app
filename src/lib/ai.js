@@ -28,14 +28,20 @@ export const fetchAIResponse = async (message, history = [], userId = null) => {
 };
 
 export const fetchReplySuggestions = async (messages, userId) => {
-  const recent = messages.filter((m) => m.text?.trim()).slice(-12);
+  const textMsgs = messages.filter((m) => m.text?.trim());
+  const recent = textMsgs.slice(-12);
   if (!recent.length) return [];
+
+  const lastMsg = recent[recent.length - 1];
+  const lastIsOther = lastMsg.senderId !== userId;
 
   const convo = recent
     .map((m) => `${m.senderId === userId ? "Me" : "Them"}: ${m.text}`)
     .join("\n");
 
-  const prompt = `You are helping someone reply in a chat. Given this conversation, write exactly 3 short, natural reply suggestions for "Me". Each should be max 15 words, varied in tone (e.g. casual, enthusiastic, thoughtful). Return ONLY a JSON array — no explanation, no markdown:\n["reply1","reply2","reply3"]\n\nConversation:\n${convo}`;
+  const prompt = lastIsOther
+    ? `You are helping someone reply in a chat. The other person just said:\n"${lastMsg.text}"\n\nFull conversation for context:\n${convo}\n\nWrite exactly 3 short, natural replies for "Me" that directly respond to what they said. Max 15 words each, varied in tone. Return ONLY a JSON array, no explanation:\n["reply1","reply2","reply3"]`
+    : `You are helping someone continue a chat conversation. "Me" sent the last message.\n\nConversation:\n${convo}\n\nBased on what this conversation is about, write exactly 3 short, natural follow-up messages "Me" could send next. Max 15 words each, varied in tone. Return ONLY a JSON array, no explanation:\n["reply1","reply2","reply3"]`;
 
   try {
     const data = await groqFetch([{ role: "user", content: prompt }], 0.85);
