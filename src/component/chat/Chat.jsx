@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
-import { fetchGeminiResponse } from "../../lib/FetchGemini";
+import { fetchAIResponse } from "../../lib/ai";
 import "./Chat.css";
 import { supabase } from "../../lib/Supabase";
 import { useChatStore } from "../../lib/chatStore";
@@ -352,11 +352,11 @@ const Chat = () => {
       if (isAI) {
         const { data: current } = await supabase.from("chats").select("messages").eq("id", chatId).single();
         const history = current?.messages ?? [];
-        const aiResponse = await fetchGeminiResponse(text, history);
+        const aiResponse = await fetchAIResponse(text, history, currentUser.id);
         const updated = [
           ...history,
           { senderId: currentUser.id, text, createdAt: new Date().toISOString(), ...(imgUrl && { img: imgUrl }) },
-          { senderId: "gemini_ai", text: aiResponse, createdAt: new Date().toISOString() },
+          { senderId: "ai", text: aiResponse, createdAt: new Date().toISOString() },
         ];
         const { error } = await supabase.from("chats").upsert({ id: chatId, messages: updated });
         if (error) throw error;
