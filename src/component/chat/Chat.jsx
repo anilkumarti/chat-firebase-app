@@ -108,6 +108,7 @@ const Chat = () => {
       .channel(`chat:${chatId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chats", filter: `id=eq.${chatId}` },
         fetchMessages)
+      .on("broadcast", { event: "new_message" }, fetchMessages)
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, [chatId]);
@@ -174,6 +175,15 @@ const Chat = () => {
     [chatId, currentUser?.id, user?.id, isGroupChat, groupInfo, triggerChatListRefresh]
   );
 
+  const broadcastNewMessage = () => {
+    const bc = supabase.channel(`chat:${chatId}`);
+    bc.subscribe((status) => {
+      if (status !== "SUBSCRIBED") return;
+      bc.send({ type: "broadcast", event: "new_message", payload: {} });
+      setTimeout(() => supabase.removeChannel(bc), 2000);
+    });
+  };
+
   const handleEmoji = (e) => { setText((prev) => prev + e.emoji); setOpen(false); };
 
   const handleImg = (e) => {
@@ -225,7 +235,7 @@ const Chat = () => {
           };
           const updated = [...(current?.messages ?? []), newMsg];
           const { error } = await supabase.from("chats").update({ messages: updated }).eq("id", chatId);
-          if (!error) { setMessages(updated); await updateUserChats("🎤 Voice message"); }
+          if (!error) { setMessages(updated); await updateUserChats("🎤 Voice message"); broadcastNewMessage(); }
         } catch { toast.error("Failed to send voice message"); }
       };
       recorder.start();
@@ -328,6 +338,7 @@ const Chat = () => {
         if (error) throw error;
         setMessages(updated);
         await updateUserChats(text);
+        broadcastNewMessage();
       }
 
       if (img.url) URL.revokeObjectURL(img.url);
