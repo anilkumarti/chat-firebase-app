@@ -48,6 +48,13 @@ const CamIcon = ({ off }) =>
     </svg>
   );
 
+const FlipIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/>
+    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+  </svg>
+);
+
 const ScreenIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="3" width="20" height="14" rx="2" />
@@ -78,6 +85,7 @@ const CallModal = () => {
   const { currentUser } = useUserStore();
 
   const remoteVideoRef = useRef(null);
+  const remoteAudioRef = useRef(null);
   const localVideoRef  = useRef(null);
   const callTimerRef   = useRef(null);
   const ringTimerRef   = useRef(null);
@@ -87,13 +95,17 @@ const CallModal = () => {
   const [isScreenShare,  setIsScreenShare]  = useState(false);
   const [callDuration,   setCallDuration]   = useState(0);
   const [ringDuration,   setRingDuration]   = useState(0);
+  const [facingMode,     setFacingMode]     = useState("user");
 
-  /* Wire video elements */
+  /* Wire remote stream — audio calls use <audio>, video calls use <video> */
   useEffect(() => {
-    if (activeCall?.remoteStream && remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = activeCall.remoteStream;
+    if (!activeCall?.remoteStream) return;
+    if (activeCall.callType === "video") {
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = activeCall.remoteStream;
+    } else {
+      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = activeCall.remoteStream;
     }
-  }, [activeCall?.remoteStream]);
+  }, [activeCall?.remoteStream, activeCall?.callType]);
 
   useEffect(() => {
     const stream = (activeCall || pendingCall)?.localStream;
@@ -129,6 +141,7 @@ const CallModal = () => {
       setIsMuted(false);
       setIsCamOff(false);
       setIsScreenShare(false);
+      setFacingMode("user");
     }
   }, [activeCall, pendingCall, incomingCall]);
 
@@ -229,13 +242,34 @@ const CallModal = () => {
     setIsCamOff((v) => !v);
   };
 
+  const flipCamera = async () => {
+    const peer = activeCall?.peer;
+    if (!peer) return;
+    const newFacing = facingMode === "user" ? "environment" : "user";
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { exact: newFacing } },
+        audio: false,
+      }).catch(() =>
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: newFacing }, audio: false })
+      );
+      const track = stream.getVideoTracks()[0];
+      const sndr  = peer.getSenders().find((s) => s.track?.kind === "video");
+      if (sndr) await sndr.replaceTrack(track);
+      if (localVideoRef.current)
+        localVideoRef.current.srcObject = new MediaStream([track, ...activeCall.localStream.getAudioTracks()]);
+      setFacingMode(newFacing);
+    } catch {
+      toast.error("Could not flip camera");
+    }
+  };
+
   const toggleScreenShare = async () => {
     const peer = activeCall?.peer;
     if (!peer) return;
     try {
       if (isScreenShare) {
-        // switch back to camera
-        const cam   = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const cam   = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
         const track = cam.getVideoTracks()[0];
         const sndr  = peer.getSenders().find((s) => s.track?.kind === "video");
         if (sndr) {
@@ -245,7 +279,7 @@ const CallModal = () => {
         }
         setIsScreenShare(false);
       } else {
-        const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        const screen = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
         const track  = screen.getVideoTracks()[0];
         const sndr   = peer.getSenders().find((s) => s.track?.kind === "video");
         if (sndr) {
@@ -254,13 +288,14 @@ const CallModal = () => {
             localVideoRef.current.srcObject = new MediaStream([track, ...activeCall.localStream.getAudioTracks()]);
         }
         track.onended = async () => {
-          const cam    = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          const ct     = cam.getVideoTracks()[0];
-          const snd    = peer.getSenders().find((s) => s.track?.kind === "video");
-          if (snd) {
-            await snd.replaceTrack(ct);
-            if (localVideoRef.current) localVideoRef.current.srcObject = activeCall.localStream;
-          }
+          try {
+            const cam = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
+            const ct  = cam.getVideoTracks()[0];
+            const snd = peer.getSenders().find((s) => s.track?.kind === "video");
+            if (snd) await snd.replaceTrack(ct);
+            if (localVideoRef.current)
+              localVideoRef.current.srcObject = new MediaStream([ct, ...activeCall.localStream.getAudioTracks()]);
+          } catch (e) { console.error("restoreCamera:", e); }
           setIsScreenShare(false);
         };
         setIsScreenShare(true);
@@ -280,6 +315,8 @@ const CallModal = () => {
   /* ── Render ─────────────────────────────────────────────── */
   return (
     <div className="callOverlay">
+      {/* Always-mounted audio element for voice calls */}
+      <audio ref={remoteAudioRef} autoPlay style={{ display: "none" }} />
       <div className={`callModal${isVideo && activeCall ? " callVideoActive" : ""}`}>
 
         {/* ── ACTIVE CALL ────────────────────────────────── */}
@@ -315,6 +352,10 @@ const CallModal = () => {
                   <button className={`ctrlBtn${isCamOff ? " ctrlOff" : ""}`} onClick={toggleCamera} title="Toggle camera">
                     <CamIcon off={isCamOff} />
                     <span>{isCamOff ? "Start cam" : "Stop cam"}</span>
+                  </button>
+                  <button className="ctrlBtn" onClick={flipCamera} title="Flip camera">
+                    <FlipIcon />
+                    <span>Flip</span>
                   </button>
                   <button className={`ctrlBtn${isScreenShare ? " ctrlActive" : ""}`} onClick={toggleScreenShare} title="Share screen">
                     <ScreenIcon />
