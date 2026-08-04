@@ -4,6 +4,7 @@ import { useCallStore } from "../../lib/callStore";
 import { useUserStore } from "../../lib/UserStore";
 import { supabase } from "../../lib/Supabase";
 import { saveCallEvent } from "../../lib/callUtils";
+import { startRingtone, stopRingtone } from "../../lib/ringtone";
 import "./CallModal.css";
 
 const ICE = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
@@ -156,6 +157,13 @@ const CallModal = () => {
       toast.info("No answer — call ended automatically");
     }
   }, [ringDuration]);
+
+  /* Ring while there's an incoming call, stop once accepted/declined/cleared */
+  useEffect(() => {
+    if (incomingCall) startRingtone();
+    else stopRingtone();
+    return stopRingtone;
+  }, [!!incomingCall]);
 
   /* ── Signal helper ──────────────────────────────────────── */
   const sendSignal = (userId, payload) => {
