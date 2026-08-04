@@ -77,7 +77,7 @@ const ContactsModal = ({ onClose }) => {
         .eq("user_id", user.id)
         .single();
 
-      await supabase
+      const { data: rxRows, error: rxError } = await supabase
         .from("user_chats")
         .update({
           chats: [
@@ -85,9 +85,12 @@ const ContactsModal = ({ onClose }) => {
             { chatId: newChatId, lastMessage: "", receiverId: currentUser.id, updatedAt: now, isSeen: false },
           ],
         })
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .select("user_id");
+      if (rxError) throw rxError;
+      if (!rxRows?.length) throw new Error("Could not add chat to that user — their account has no chat list yet.");
 
-      await supabase
+      const { error: myError } = await supabase
         .from("user_chats")
         .update({
           chats: [
@@ -96,6 +99,7 @@ const ContactsModal = ({ onClose }) => {
           ],
         })
         .eq("user_id", currentUser.id);
+      if (myError) throw myError;
 
       changeChat(newChatId, user);
       triggerChatListRefresh();

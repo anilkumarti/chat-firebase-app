@@ -118,6 +118,30 @@ const Chat = () => {
     };
   }, [chatId]);
 
+  // UPDATE is permitted on any user's row; INSERT is only permitted on your own.
+  // .update() on a missing row is a silent 0-row no-op, so verify via .select().
+  const writeUserChats = async (userId, chats) => {
+    const { data, error } = await supabase
+      .from("user_chats")
+      .update({ chats })
+      .eq("user_id", userId)
+      .select("user_id");
+    if (error) {
+      console.error("writeUserChats update:", userId, error.message);
+      return;
+    }
+    if (data?.length) return;
+    const { error: insertError } = await supabase
+      .from("user_chats")
+      .insert({ user_id: userId, chats });
+    if (insertError) {
+      console.error(
+        `writeUserChats: no user_chats row for ${userId} and insert was rejected (${insertError.message}). ` +
+        `Add an RLS policy allowing authenticated users to insert user_chats rows for others.`
+      );
+    }
+  };
+
   const updateUserChats = useCallback(
     async (lastMessage) => {
       if (isGroupChat) {
@@ -130,7 +154,7 @@ const Chat = () => {
                 ? { ...c, lastMessage, isSeen: memberId === currentUser.id, updatedAt: Date.now() }
                 : c
             );
-            await supabase.from("user_chats").update({ chats: updatedChats }).eq("user_id", memberId);
+            await writeUserChats(memberId, updatedChats);
           })
         );
       } else {
@@ -158,7 +182,7 @@ const Chat = () => {
                 },
               ];
             }
-            await supabase.from("user_chats").update({ chats: updatedChats }).eq("user_id", id);
+            await writeUserChats(id, updatedChats);
           })
         );
       }
