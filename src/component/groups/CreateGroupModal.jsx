@@ -75,7 +75,16 @@ const CreateGroupModal = ({ onClose }) => {
             .single();
           await supabase
             .from("user_chats")
-            .update({ chats: [...(row?.chats ?? []), { ...baseEntry, isSeen: memberId === currentUser.id }] })
+            .update({
+              chats: [
+                ...(row?.chats ?? []),
+                {
+                  ...baseEntry,
+                  isSeen: memberId === currentUser.id,
+                  unreadCount: memberId === currentUser.id ? 0 : 1,
+                },
+              ],
+            })
             .eq("user_id", memberId);
         })
       );

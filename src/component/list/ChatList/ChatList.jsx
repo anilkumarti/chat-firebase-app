@@ -123,7 +123,7 @@ const ChatList = () => {
           .eq("user_id", currentUser.id)
           .single();
         const updatedChats = (data?.chats ?? []).map((c) =>
-          c.chatId === chat.chatId ? { ...c, isSeen: true } : c
+          c.chatId === chat.chatId ? { ...c, isSeen: true, unreadCount: 0 } : c
         );
         await supabase
           .from("user_chats")
@@ -143,7 +143,7 @@ const ChatList = () => {
         .eq("user_id", currentUser.id)
         .single();
       const updatedChats = (data?.chats ?? []).map((c) =>
-        c.chatId === chat.chatId ? { ...c, isSeen: true } : c
+        c.chatId === chat.chatId ? { ...c, isSeen: true, unreadCount: 0 } : c
       );
       await supabase
         .from("user_chats")
@@ -183,7 +183,8 @@ const ChatList = () => {
         const avatar = isGroup
           ? chat.group?.avatar
           : isBlocked ? "./avatar.png" : (chat.user?.avatar || "./avatar.png");
-        const unseen = !chat.isSeen;
+        const unreadCount = chat.unreadCount ?? (chat.isSeen ? 0 : 1);
+        const unseen = unreadCount > 0;
 
         return (
           <div
@@ -206,7 +207,9 @@ const ChatList = () => {
               </div>
               <div className="itemBottom">
                 <span className="itemPreview">{chat.lastMessage || "Start a conversation"}</span>
-                {unseen && <span className="unreadBadge" />}
+                {unreadCount > 0 && (
+                  <span className="unreadBadge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                )}
               </div>
             </div>
           </div>

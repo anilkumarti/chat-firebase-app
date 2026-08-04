@@ -66,6 +66,7 @@ const AddUser = () => {
               receiverId: currentUser.id,
               updatedAt: now,
               isSeen: false,
+              unreadCount: 1,
             },
           ],
         })
@@ -85,6 +86,7 @@ const AddUser = () => {
               receiverId: user.id,
               updatedAt: now,
               isSeen: true,
+              unreadCount: 0,
             },
           ],
         })

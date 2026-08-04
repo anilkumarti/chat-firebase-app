@@ -82,7 +82,7 @@ const ContactsModal = ({ onClose }) => {
         .update({
           chats: [
             ...(receiverRow?.chats ?? []),
-            { chatId: newChatId, lastMessage: "", receiverId: currentUser.id, updatedAt: now, isSeen: false },
+            { chatId: newChatId, lastMessage: "", receiverId: currentUser.id, updatedAt: now, isSeen: false, unreadCount: 1 },
           ],
         })
         .eq("user_id", user.id)
@@ -95,7 +95,7 @@ const ContactsModal = ({ onClose }) => {
         .update({
           chats: [
             ...myChats,
-            { chatId: newChatId, lastMessage: "", receiverId: user.id, updatedAt: now, isSeen: true },
+            { chatId: newChatId, lastMessage: "", receiverId: user.id, updatedAt: now, isSeen: true, unreadCount: 0 },
           ],
         })
         .eq("user_id", currentUser.id);

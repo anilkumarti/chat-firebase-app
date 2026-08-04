@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
-import { fetchAIResponse } from "../../lib/FetchDeepseek";
+import { fetchGeminiResponse } from "../../lib/FetchGemini";
 import "./Chat.css";
 import { supabase } from "../../lib/Supabase";
 import { useChatStore } from "../../lib/chatStore";
@@ -151,7 +151,13 @@ const Chat = () => {
             const { data: row } = await supabase.from("user_chats").select("*").eq("user_id", memberId).single();
             const updatedChats = (row?.chats ?? []).map((c) =>
               c.chatId === chatId
-                ? { ...c, lastMessage, isSeen: memberId === currentUser.id, updatedAt: Date.now() }
+                ? {
+                    ...c,
+                    lastMessage,
+                    updatedAt: Date.now(),
+                    isSeen: memberId === currentUser.id,
+                    unreadCount: memberId === currentUser.id ? 0 : (c.unreadCount ?? 0) + 1,
+                  }
                 : c
             );
             await writeUserChats(memberId, updatedChats);
@@ -167,7 +173,13 @@ const Chat = () => {
             if (existing) {
               updatedChats = (row?.chats ?? []).map((c) =>
                 c.chatId === chatId
-                  ? { ...c, lastMessage, isSeen: id === currentUser.id, updatedAt: Date.now() }
+                  ? {
+                      ...c,
+                      lastMessage,
+                      updatedAt: Date.now(),
+                      isSeen: id === currentUser.id,
+                      unreadCount: id === currentUser.id ? 0 : (c.unreadCount ?? 0) + 1,
+                    }
                   : c
               );
             } else {
@@ -178,6 +190,7 @@ const Chat = () => {
                   lastMessage,
                   receiverId: id === currentUser.id ? user.id : currentUser.id,
                   isSeen: id === currentUser.id,
+                  unreadCount: id === currentUser.id ? 0 : 1,
                   updatedAt: Date.now(),
                 },
               ];
@@ -337,12 +350,13 @@ const Chat = () => {
       const isAI = chatId.startsWith("deepseek_ai_");
 
       if (isAI) {
-        const aiResponse = await fetchAIResponse(text);
         const { data: current } = await supabase.from("chats").select("messages").eq("id", chatId).single();
+        const history = current?.messages ?? [];
+        const aiResponse = await fetchGeminiResponse(text, history);
         const updated = [
-          ...(current?.messages ?? []),
+          ...history,
           { senderId: currentUser.id, text, createdAt: new Date().toISOString(), ...(imgUrl && { img: imgUrl }) },
-          { senderId: "deepseek_ai", text: aiResponse, createdAt: new Date().toISOString() },
+          { senderId: "gemini_ai", text: aiResponse, createdAt: new Date().toISOString() },
         ];
         const { error } = await supabase.from("chats").upsert({ id: chatId, messages: updated });
         if (error) throw error;
