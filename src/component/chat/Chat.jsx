@@ -73,6 +73,7 @@ const Chat = () => {
   const emojiRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordingTimerRef = useRef(null);
+  const chatChannelRef = useRef(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -105,12 +106,16 @@ const Chat = () => {
     if (isAI) return;
 
     const channel = supabase
-      .channel(`chat:${chatId}`)
+      .channel(`chat:${chatId}`, { config: { broadcast: { self: false } } })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chats", filter: `id=eq.${chatId}` },
         fetchMessages)
       .on("broadcast", { event: "new_message" }, fetchMessages)
       .subscribe();
-    return () => supabase.removeChannel(channel);
+    chatChannelRef.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+      chatChannelRef.current = null;
+    };
   }, [chatId]);
 
   const updateUserChats = useCallback(
@@ -176,12 +181,7 @@ const Chat = () => {
   );
 
   const broadcastNewMessage = () => {
-    const bc = supabase.channel(`chat:${chatId}`);
-    bc.subscribe((status) => {
-      if (status !== "SUBSCRIBED") return;
-      bc.send({ type: "broadcast", event: "new_message", payload: {} });
-      setTimeout(() => supabase.removeChannel(bc), 2000);
-    });
+    chatChannelRef.current?.send({ type: "broadcast", event: "new_message", payload: {} });
   };
 
   const handleEmoji = (e) => { setText((prev) => prev + e.emoji); setOpen(false); };
