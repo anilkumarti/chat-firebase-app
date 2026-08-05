@@ -166,6 +166,7 @@ const Chat = () => {
   const pointerStartRef = useRef(null);
   const cancelledRef = useRef(false);
   const lockedRef = useRef(false);
+  const pendingStopRef = useRef(null); // { cancel } queued when stop fires before recorder is ready
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -383,6 +384,7 @@ const Chat = () => {
   const startRecording = async () => {
     if (isRecording || isAIChat) return;
     cancelledRef.current = false;
+    pendingStopRef.current = null;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
@@ -391,6 +393,7 @@ const Chat = () => {
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        mediaRecorderRef.current = null;
         clearInterval(recordingTimerRef.current);
         setRecordingTime(0);
         setIsRecording(false);
@@ -414,20 +417,32 @@ const Chat = () => {
           const updated = [...(current?.messages ?? []), newMsg];
           const { error } = await supabase.from("chats").update({ messages: updated }).eq("id", chatId);
           if (!error) { setMessages(updated); await updateUserChats("🎤 Voice message"); broadcastNewMessage(newMsg); }
-        } catch { toast.error("Failed to send voice message"); }
+        } catch (err) { toast.error(err?.message ? `Voice send failed: ${err.message}` : "Failed to send voice message"); }
       };
       recorder.start(100);
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
       setRecordingTime(0);
       recordingTimerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+      // Drain any stop request that arrived while getUserMedia was pending
+      if (pendingStopRef.current !== null) {
+        const { cancel } = pendingStopRef.current;
+        pendingStopRef.current = null;
+        cancelledRef.current = cancel;
+        recorder.stop();
+      }
     } catch { toast.error("Microphone access denied"); }
   };
 
   const stopAndSend = (cancel = false) => {
     cancelledRef.current = cancel;
     lockedRef.current = false;
-    mediaRecorderRef.current?.stop();
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+    } else {
+      // Recorder not ready yet (getUserMedia still pending) — queue the stop
+      pendingStopRef.current = { cancel };
+    }
   };
 
   const initiateCall = async (callType) => {
