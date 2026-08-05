@@ -82,7 +82,7 @@ const PhoneIcon = ({ size = 22 }) => (
 
 /* ─── CallModal Component ───────────────────────────────── */
 const CallModal = () => {
-  const { incomingCall, pendingCall, activeCall, setSignalCh, setActiveCall, clearCall } = useCallStore();
+  const { incomingCall, pendingCall, activeCall, remoteScreenShare, setSignalCh, setActiveCall, clearCall } = useCallStore();
   const { currentUser } = useUserStore();
 
   const remoteVideoRef = useRef(null);
@@ -115,6 +115,15 @@ const CallModal = () => {
     const stream = (activeCall || pendingCall)?.localStream;
     if (stream && localVideoRef.current) localVideoRef.current.srcObject = stream;
   }, [activeCall, pendingCall]);
+
+  /* Force-refresh remote video when other side toggles screen share */
+  useEffect(() => {
+    if (!activeCall?.remoteStream || !remoteVideoRef.current) return;
+    const v = remoteVideoRef.current;
+    v.srcObject = null;
+    v.srcObject = activeCall.remoteStream;
+    v.play().catch(() => {});
+  }, [remoteScreenShare]);
 
   /* Active call timer */
   useEffect(() => {
@@ -294,6 +303,7 @@ const CallModal = () => {
           await sndr.replaceTrack(track);
           if (localVideoRef.current)
             localVideoRef.current.srcObject = new MediaStream([track, ...activeCall.localStream.getAudioTracks()]);
+          sendSignal(activeCall.withUser.id, { type: "screen-share-end" });
         }
         setIsScreenShare(false);
       } else {
@@ -307,13 +317,17 @@ const CallModal = () => {
         await sndr.replaceTrack(track);
         if (localVideoRef.current)
           localVideoRef.current.srcObject = new MediaStream([track, ...activeCall.localStream.getAudioTracks()]);
+        sendSignal(activeCall.withUser.id, { type: "screen-share-start" });
 
         track.onended = async () => {
           try {
             const cam = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingModeRef.current }, audio: false });
             const ct  = cam.getVideoTracks()[0];
             const snd = peer.getSenders().find((s) => s.track?.kind === "video");
-            if (snd && ct) await snd.replaceTrack(ct);
+            if (snd && ct) {
+              await snd.replaceTrack(ct);
+              sendSignal(activeCall.withUser.id, { type: "screen-share-end" });
+            }
             if (localVideoRef.current)
               localVideoRef.current.srcObject = new MediaStream([ct, ...activeCall.localStream.getAudioTracks()]);
           } catch (e) { console.error("restoreCamera:", e); }

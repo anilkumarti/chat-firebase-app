@@ -154,6 +154,14 @@ const App = () => {
             store.clearCall();
             break;
           }
+
+          case "screen-share-start":
+            store.setRemoteScreenShare(true);
+            break;
+
+          case "screen-share-end":
+            store.setRemoteScreenShare(false);
+            break;
         }
       })
       .subscribe();

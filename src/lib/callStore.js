@@ -6,10 +6,12 @@ export const useCallStore = create((set, get) => ({
   pendingCall: null,
   activeCall: null,
   signalCh: null,
+  remoteScreenShare: false,
 
   setIncomingCall: (v) => set({ incomingCall: v }),
   setPendingCall: (v) => set({ pendingCall: v }),
   setSignalCh: (v) => set({ signalCh: v }),
+  setRemoteScreenShare: (v) => set({ remoteScreenShare: v }),
   setActiveCall: (v) =>
     set({ activeCall: v, pendingCall: null, incomingCall: null }),
 
