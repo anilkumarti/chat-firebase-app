@@ -20,24 +20,25 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--bg-input);
+  background: var(--bg-surface);
   border: 1px solid var(--bd);
   border-radius: var(--r-pill);
-  padding: 8px 13px;
+  padding: 8px 14px;
+  height: 40px;
   transition: border-color var(--t), background var(--t), box-shadow var(--t);
   min-width: 0;
 }
 
 .chatList .searchBar:focus-within {
-  border-color: var(--accent);
-  background: rgba(124,106,245,0.05);
-  box-shadow: 0 0 0 3px rgba(124,106,245,0.1);
+  border-color: var(--bd-accent);
+  background: rgba(124,106,245,0.04);
+  box-shadow: 0 0 0 3px rgba(124,106,245,0.08);
 }
 
 .chatList .searchBar img {
   width: 14px;
   height: 14px;
-  opacity: 0.35;
+  opacity: 0.3;
   flex-shrink: 0;
 }
 
@@ -57,21 +58,33 @@
 .chatList .addBtn {
   width: 34px;
   height: 34px;
-  padding: 8px;
+  padding: 0;
   border-radius: 50%;
   background: var(--accent-dim);
-  border: 1px solid rgba(124,106,245,0.3);
+  border: 1px solid var(--bd-accent);
   cursor: pointer;
-  transition: background var(--t), transform var(--t), box-shadow var(--t);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--t), transform var(--t-slow), box-shadow var(--t);
   flex-shrink: 0;
-  opacity: 0.8;
+}
+
+.chatList .addBtn img {
+  width: 14px;
+  height: 14px;
+  opacity: 0.9;
+  pointer-events: none;
+  transition: transform var(--t-slow);
 }
 
 .chatList .addBtn:hover {
   background: var(--accent);
-  transform: scale(1.1) rotate(90deg);
-  opacity: 1;
-  box-shadow: 0 2px 10px rgba(124,106,245,0.35);
+  box-shadow: 0 2px 12px rgba(124,106,245,0.38);
+}
+
+.chatList .addBtn:hover img {
+  transform: rotate(45deg);
 }
 
 /* ── List items ─────────────────────────────── */
@@ -79,15 +92,31 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 14px;
+  padding: 12px 14px;
+  min-height: 72px;
   cursor: pointer;
   transition: background var(--t);
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.025);
   position: relative;
 }
 
 .chatList .item:hover { background: var(--bg-hover); }
-.chatList .item.active { background: var(--bg-active); }
+
+.chatList .item.active {
+  background: var(--bg-active);
+}
+
+.chatList .item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 40px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
 
 /* Unseen accent bar */
 .chatList .item.unseen::before {
@@ -97,7 +126,7 @@
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
-  height: 32px;
+  height: 36px;
   background: var(--accent);
   border-radius: 0 3px 3px 0;
 }
@@ -109,13 +138,13 @@
 }
 
 .chatList .avatarWrap img {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   object-fit: cover;
   display: block;
   background: var(--bg-elevated);
-  border: 2px solid var(--bd);
+  border: 1.5px solid var(--bd);
 }
 
 /* ── Texts ──────────────────────────────────── */
@@ -137,12 +166,17 @@
 .chatList .itemName {
   font-size: 14px;
   font-weight: 600;
-  color: var(--t1);
+  color: var(--t2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
   letter-spacing: -0.01em;
+}
+
+.chatList .item.unseen .itemName {
+  color: var(--t1);
+  font-weight: 600;
 }
 
 .chatList .itemTime {
@@ -184,7 +218,7 @@
 .chatList .unreadBadge {
   min-width: 18px;
   height: 18px;
-  border-radius: 9px;
+  border-radius: var(--r-pill);
   background: var(--accent);
   flex-shrink: 0;
   display: flex;
@@ -194,20 +228,20 @@
   font-weight: 700;
   color: #fff;
   padding: 0 5px;
-  box-shadow: 0 1px 6px rgba(124,106,245,0.4);
+  box-shadow: 0 1px 6px rgba(124,106,245,0.45);
 }
 
 /* ── Group avatar ───────────────────────────── */
 .chatList .groupInitial {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: var(--accent-dim);
-  border: 2px solid rgba(124,106,245,0.35);
+  border: 1.5px solid var(--bd-accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--accent);
 }
@@ -226,4 +260,33 @@
   justify-content: center;
   line-height: 1;
   border: 1px solid var(--bd);
+}
+
+/* ── Skeleton loading ───────────────────────── */
+.skeletonItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  min-height: 72px;
+  border-bottom: 1px solid rgba(255,255,255,0.025);
+}
+
+.skeletonAvatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeletonTexts {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeletonLine {
+  height: 12px;
+  border-radius: var(--r4);
 }

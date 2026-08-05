@@ -1,9 +1,9 @@
 .contactsOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -11,15 +11,18 @@
 }
 
 .contactsModal {
-  width: min(92vw, 380px);
+  width: min(92vw, 400px);
   max-height: min(80vh, 560px);
-  background: var(--bg-sidebar);
-  border: 1px solid var(--bd2);
+  background: var(--bg-surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--bd);
   border-radius: var(--r16);
-  box-shadow: var(--sh-lg);
+  box-shadow: var(--sh-lg), var(--sh-glow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: fadeUp 0.2s var(--t-slow);
 }
 
 /* ── Header ─────────────────────────────────── */
@@ -36,10 +39,11 @@
   font-size: 16px;
   font-weight: 700;
   color: var(--t1);
+  letter-spacing: -0.01em;
 }
 
 .contactsClose {
-  background: none;
+  background: var(--bg-glass);
   border: none;
   color: var(--t3);
   font-size: 16px;
@@ -52,6 +56,7 @@
   justify-content: center;
   transition: background var(--t), color var(--t);
   line-height: 1;
+  font-family: inherit;
 }
 
 .contactsClose:hover {
@@ -72,7 +77,7 @@
 .contactsSearch img {
   width: 14px;
   height: 14px;
-  opacity: 0.35;
+  opacity: 0.3;
   flex-shrink: 0;
 }
 
@@ -107,8 +112,10 @@
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
+  height: 56px;
   transition: background var(--t);
   border-bottom: 1px solid rgba(255,255,255,0.025);
+  cursor: pointer;
 }
 
 .contactItem:hover {
@@ -122,6 +129,7 @@
   object-fit: cover;
   background: var(--bg-elevated);
   flex-shrink: 0;
+  border: 1.5px solid var(--bd);
 }
 
 .contactName {
@@ -139,7 +147,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  border: 1.5px solid var(--accent);
+  border: 1.5px solid var(--bd-accent);
   background: var(--accent-soft);
   color: var(--accent);
   font-size: 18px;
@@ -149,16 +157,17 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background var(--t), transform var(--t);
+  transition: background var(--t), transform var(--t), border-color var(--t);
 }
 
 .contactAddBtn:hover:not(:disabled) {
   background: var(--accent-dim);
-  transform: scale(1.1);
+  border-color: var(--accent);
+  transform: scale(1.08);
 }
 
 .contactAddBtn:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
   transform: none;
 }

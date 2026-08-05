@@ -20,6 +20,7 @@ const ChatList = () => {
   const [chats, setChats] = useState([]);
   const [addMode, setAddMode] = useState(false);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const { currentUser } = useUserStore();
   const { changeChat, changeGroup, chatListRefresh } = useChatStore();
 
@@ -53,6 +54,7 @@ const ChatList = () => {
         updatedAt: Infinity,
       };
       setChats([aiChat, ...sorted]);
+      setIsLoading(false);
     },
     [currentUser?.id]
   );
@@ -174,7 +176,19 @@ const ChatList = () => {
         />
       </div>
 
-      {filteredChats.map((chat) => {
+      {isLoading
+        ? [...Array(5)].map((_, i) => (
+            <div key={i} className="skeletonItem">
+              <div className="skeletonAvatar skeleton" />
+              <div className="skeletonTexts">
+                <div className="skeletonLine skeleton" style={{ width: `${50 + (i * 23) % 35}%` }} />
+                <div className="skeletonLine skeleton" style={{ width: `${30 + (i * 17) % 45}%`, height: "10px" }} />
+              </div>
+            </div>
+          ))
+        : null}
+
+      {!isLoading && filteredChats.map((chat) => {
         const isGroup = !!chat.isGroup;
         const isBlocked = !isGroup && chat.user?.blocked?.includes(currentUser.id);
         const displayName = isGroup

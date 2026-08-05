@@ -1,9 +1,9 @@
 .cgOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -11,15 +11,18 @@
 }
 
 .cgModal {
-  width: min(92vw, 400px);
+  width: min(92vw, 420px);
   max-height: min(84vh, 580px);
-  background: var(--bg-sidebar);
-  border: 1px solid var(--bd2);
+  background: var(--bg-surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--bd);
   border-radius: var(--r16);
-  box-shadow: var(--sh-lg);
+  box-shadow: var(--sh-lg), var(--sh-glow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: fadeUp 0.2s var(--t-slow);
 }
 
 /* Header */
@@ -36,10 +39,11 @@
   font-size: 16px;
   font-weight: 700;
   color: var(--t1);
+  letter-spacing: -0.01em;
 }
 
 .cgClose {
-  background: none;
+  background: var(--bg-glass);
   border: none;
   color: var(--t3);
   font-size: 16px;
@@ -52,6 +56,7 @@
   justify-content: center;
   transition: background var(--t), color var(--t);
   line-height: 1;
+  font-family: inherit;
 }
 
 .cgClose:hover {
@@ -70,15 +75,17 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--bg-surface);
+  background: var(--bg-elevated);
   border: 1px solid var(--bd);
   border-radius: var(--r-pill);
-  padding: 10px 16px;
-  transition: border-color var(--t);
+  padding: 0 16px;
+  height: 44px;
+  transition: border-color var(--t), box-shadow var(--t);
 }
 
 .cgNameWrap:focus-within {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124,106,245,0.08);
 }
 
 .cgNameIcon { font-size: 18px; flex-shrink: 0; }
@@ -109,7 +116,7 @@
 .cgSearchRow img {
   width: 14px;
   height: 14px;
-  opacity: 0.35;
+  opacity: 0.3;
   flex-shrink: 0;
 }
 
@@ -134,6 +141,7 @@
   padding: 2px 8px;
   border-radius: var(--r-pill);
   flex-shrink: 0;
+  border: 1px solid var(--bd-accent);
 }
 
 /* List */
@@ -160,7 +168,10 @@
 }
 
 .cgUser:hover { background: var(--bg-hover); }
-.cgUser.cgSelected { background: var(--accent-soft); }
+
+.cgUser.cgSelected {
+  background: var(--accent-soft);
+}
 
 .cgUser img {
   width: 40px;
@@ -169,6 +180,7 @@
   object-fit: cover;
   background: var(--bg-elevated);
   flex-shrink: 0;
+  border: 1.5px solid var(--bd);
 }
 
 .cgUserName {
@@ -182,10 +194,11 @@
   min-width: 0;
 }
 
+/* Toggle pill checkbox */
 .cgCheck {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  border-radius: var(--r-pill);
   border: 1.5px solid var(--bd2);
   display: flex;
   align-items: center;
@@ -201,6 +214,7 @@
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+  box-shadow: 0 0 8px rgba(124,106,245,0.35);
 }
 
 /* Footer */
@@ -221,17 +235,18 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: opacity var(--t), transform var(--t);
-  box-shadow: 0 2px 10px rgba(59,109,226,.3);
+  transition: filter var(--t), transform var(--t), box-shadow var(--t);
+  box-shadow: 0 4px 16px rgba(124,106,245,0.35);
 }
 
 .cgCreateBtn:hover:not(:disabled) {
-  opacity: 0.88;
+  filter: brightness(1.08);
   transform: translateY(-1px);
+  box-shadow: var(--sh-glow);
 }
 
 .cgCreateBtn:disabled {
-  opacity: 0.38;
+  opacity: 0.35;
   cursor: not-allowed;
   box-shadow: none;
 }

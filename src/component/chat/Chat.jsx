@@ -651,8 +651,12 @@ const Chat = () => {
           </div>
         )}
         {isLoadingMessages && (
-          <div className="msgLoadingWrap">
-            <span className="msgLoadingDot" /><span className="msgLoadingDot" /><span className="msgLoadingDot" />
+          <div className="msgSkeleton">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className={`skeletonMsg${i % 3 === 0 ? ' skeletonMsgOwn' : ''}`}>
+                <div className="skeletonBubble skeleton" style={{ width: `${60 + (i * 17) % 40}%` }} />
+              </div>
+            ))}
           </div>
         )}
         {messages.map((message, index) => {
