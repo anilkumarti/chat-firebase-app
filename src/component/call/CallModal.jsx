@@ -279,12 +279,18 @@ const CallModal = () => {
   const toggleScreenShare = async () => {
     const peer = activeCall?.peer;
     if (!peer) return;
+
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      toast.error("Screen sharing is not supported on this device/browser");
+      return;
+    }
+
     try {
       if (isScreenShare) {
         const cam   = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingModeRef.current }, audio: false });
         const track = cam.getVideoTracks()[0];
         const sndr  = peer.getSenders().find((s) => s.track?.kind === "video");
-        if (sndr) {
+        if (sndr && track) {
           await sndr.replaceTrack(track);
           if (localVideoRef.current)
             localVideoRef.current.srcObject = new MediaStream([track, ...activeCall.localStream.getAudioTracks()]);
@@ -293,19 +299,21 @@ const CallModal = () => {
       } else {
         const screen = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
         const track  = screen.getVideoTracks()[0];
-        const sndr   = peer.getSenders().find((s) => s.track?.kind === "video");
-        if (sndr) {
-          await sndr.replaceTrack(track);
-          if (localVideoRef.current)
-            localVideoRef.current.srcObject = new MediaStream([track, ...activeCall.localStream.getAudioTracks()]);
-        }
-        // Use ref so onended always gets the current facingMode, not the closure value
+        if (!track) { toast.error("No screen track available"); return; }
+
+        const sndr = peer.getSenders().find((s) => s.track?.kind === "video");
+        if (!sndr) { toast.error("No video channel — start a video call to share screen"); track.stop(); return; }
+
+        await sndr.replaceTrack(track);
+        if (localVideoRef.current)
+          localVideoRef.current.srcObject = new MediaStream([track, ...activeCall.localStream.getAudioTracks()]);
+
         track.onended = async () => {
           try {
             const cam = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingModeRef.current }, audio: false });
             const ct  = cam.getVideoTracks()[0];
             const snd = peer.getSenders().find((s) => s.track?.kind === "video");
-            if (snd) await snd.replaceTrack(ct);
+            if (snd && ct) await snd.replaceTrack(ct);
             if (localVideoRef.current)
               localVideoRef.current.srcObject = new MediaStream([ct, ...activeCall.localStream.getAudioTracks()]);
           } catch (e) { console.error("restoreCamera:", e); }
@@ -314,7 +322,8 @@ const CallModal = () => {
         setIsScreenShare(true);
       }
     } catch (e) {
-      console.error("screenShare:", e);
+      if (e.name !== "NotAllowedError") toast.error("Screen share failed: " + e.message);
+      setIsScreenShare(false);
     }
   };
 
