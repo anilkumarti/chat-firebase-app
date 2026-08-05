@@ -90,7 +90,7 @@ const Login = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const { username, email, password, confirmPassword, phone } = Object.fromEntries(formData);
+    const { username, email, password, confirmPassword } = Object.fromEntries(formData);
 
     if (!username.trim())             { toast.error("Username is required"); return; }
     if (!email.trim())                { toast.error("Email is required"); return; }
@@ -113,10 +113,6 @@ const Login = () => {
         blocked: [],
       });
       if (profileError) throw profileError;
-
-      if (phone?.trim()) {
-        await supabase.from("users").update({ phone: phone.trim() }).eq("id", data.user.id);
-      }
 
       const { error: chatError } = await supabase.from("user_chats").insert({
         user_id: data.user.id,
@@ -188,7 +184,6 @@ const Login = () => {
             />
             <input type="text" name="username" placeholder="Username" value={regUsername} onChange={(e) => setRegUsername(e.target.value)} />
             <input type="email" name="email" placeholder="Email address" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} />
-            <input type="tel" name="phone" placeholder="Phone number (optional)" />
             <div className="pw-wrap">
               <input type={showSignupPw ? "text" : "password"} name="password" placeholder="Password" value={regPw} onChange={(e) => setRegPw(e.target.value)} />
               <button type="button" className="pw-toggle" onClick={() => setShowSignupPw((v) => !v)}>
