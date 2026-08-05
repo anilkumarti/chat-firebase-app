@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { fetchAIResponse, fetchReplySuggestions, summarizeConversation, rewriteMessage, transcribeAudio, translateMessage } from "../../lib/ai";
 import "./Chat.css";
@@ -11,6 +11,79 @@ import upload from "../../lib/Upload";
 import CameraModal from "./CameraModal";
 
 const ICE = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+/* ── Seeded waveform bars (deterministic from key) ─────────── */
+const seededBars = (key, count = 30) => {
+  let seed = 0;
+  for (let i = 0; i < key.length; i++) seed = (seed * 31 + key.charCodeAt(i)) & 0xffff;
+  return Array.from({ length: count }, () => {
+    seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
+    return 18 + (seed % 58);
+  });
+};
+
+/* ── Custom voice message player ───────────────────────────── */
+const VoicePlayer = ({ src, msgKey, isOwn }) => {
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef(null);
+  const bars = useMemo(() => seededBars(msgKey || src, 30), [msgKey, src]);
+
+  useEffect(() => {
+    const audio = new Audio(src);
+    audioRef.current = audio;
+    audio.onloadedmetadata = () => { if (isFinite(audio.duration)) setDuration(audio.duration); };
+    audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
+    audio.onended = () => { setPlaying(false); setCurrentTime(0); };
+    return () => { audio.pause(); audio.src = ""; };
+  }, [src]);
+
+  const toggle = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (playing) { a.pause(); setPlaying(false); }
+    else { a.play().catch(() => {}); setPlaying(true); }
+  };
+
+  const seek = (e) => {
+    const a = audioRef.current;
+    if (!a || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    a.currentTime = ratio * duration;
+  };
+
+  const fmtT = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  const progress = duration > 0 ? currentTime / duration : 0;
+
+  return (
+    <div className={`voicePlayer${isOwn ? " voicePlayerOwn" : ""}`}>
+      <button className="vpPlay" onClick={toggle}>
+        {playing
+          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          : <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>}
+      </button>
+      <div className="vpBody">
+        <div className="vpWave" onClick={seek}>
+          {bars.map((h, i) => (
+            <div
+              key={i}
+              className="vpBar"
+              style={{
+                height: `${playing ? h : Math.max(18, h * 0.6)}%`,
+                background: i / bars.length <= progress
+                  ? (isOwn ? "rgba(255,255,255,0.9)" : "var(--accent)")
+                  : (isOwn ? "rgba(255,255,255,0.35)" : "rgba(124,106,245,0.3)"),
+              }}
+            />
+          ))}
+        </div>
+        <span className="vpTime">{fmtT(playing ? currentTime : duration)}</span>
+      </div>
+    </div>
+  );
+};
 
 const fmtCallDuration = (s) => {
   if (!s) return "";
@@ -60,6 +133,8 @@ const Chat = () => {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+  const [slideX, setSlideX] = useState(0);
   const [hoveredMsg, setHoveredMsg] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [isFetchingSugg, setIsFetchingSugg] = useState(false);
@@ -88,6 +163,9 @@ const Chat = () => {
   const mediaRecorderRef = useRef(null);
   const recordingTimerRef = useRef(null);
   const chatChannelRef = useRef(null);
+  const pointerStartRef = useRef(null);
+  const cancelledRef = useRef(false);
+  const lockedRef = useRef(false);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -302,21 +380,27 @@ const Chat = () => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  const handleMicToggle = async () => {
-    if (isRecording) { mediaRecorderRef.current?.stop(); return; }
+  const startRecording = async () => {
+    if (isRecording || isAIChat) return;
+    cancelledRef.current = false;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+      const recorder = new MediaRecorder(stream, { mimeType });
       const chunks = [];
-      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         clearInterval(recordingTimerRef.current);
         setRecordingTime(0);
         setIsRecording(false);
-        if (!chatId || chatId.startsWith("deepseek_ai_")) return;
-        const blob = new Blob(chunks, { type: "audio/webm" });
-        const file = new File([blob], `voice_${Date.now()}.webm`, { type: "audio/webm" });
+        setIsLocked(false);
+        setSlideX(0);
+        if (cancelledRef.current || !chatId || chatId.startsWith("deepseek_ai_")) return;
+        if (chunks.length === 0) return;
+        const blob = new Blob(chunks, { type: mimeType });
+        const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+        const file = new File([blob], `voice_${Date.now()}.${ext}`, { type: mimeType });
         try {
           const audioUrl = await upload(file);
           const { data: current } = await supabase.from("chats").select("messages").eq("id", chatId).single();
@@ -332,12 +416,18 @@ const Chat = () => {
           if (!error) { setMessages(updated); await updateUserChats("🎤 Voice message"); broadcastNewMessage(newMsg); }
         } catch { toast.error("Failed to send voice message"); }
       };
-      recorder.start();
+      recorder.start(100);
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
       setRecordingTime(0);
       recordingTimerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
     } catch { toast.error("Microphone access denied"); }
+  };
+
+  const stopAndSend = (cancel = false) => {
+    cancelledRef.current = cancel;
+    lockedRef.current = false;
+    mediaRecorderRef.current?.stop();
   };
 
   const initiateCall = async (callType) => {
@@ -631,7 +721,7 @@ const Chat = () => {
                 {message.img && <img src={message.img} alt="attachment" />}
                 {message.audio && (
                   <>
-                    <audio controls src={message.audio} className="voiceMessage" />
+                    <VoicePlayer src={message.audio} msgKey={stableKey} isOwn={isOwn} />
                     {(() => {
                       const tr = transcripts[stableKey];
                       if (tr === "__loading__") return <span className="transcribingText"><span className="suggestSpinner" /> Transcribing…</span>;
@@ -731,9 +821,34 @@ const Chat = () => {
           <img src="./camera.png" alt="camera" title="Take photo"
             onClick={() => !isAIChat && setCameraOpen(true)}
             className={isAIChat ? "iconDisabled" : ""} />
-          <img src="./mic.png" alt="mic" title={isRecording ? "Stop recording" : "Voice message"}
-            onClick={() => !isAIChat && handleMicToggle()}
-            className={`${isRecording ? "micActive" : ""} ${isAIChat ? "iconDisabled" : ""}`} />
+          <button
+            className={`micBtn${isRecording ? " micBtnActive" : ""}${isAIChat ? " iconDisabled" : ""}`}
+            title="Hold to record"
+            disabled={isAIChat}
+            onPointerDown={(e) => {
+              if (isAIChat) return;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              pointerStartRef.current = { x: e.clientX, y: e.clientY };
+              lockedRef.current = false;
+              setSlideX(0);
+              startRecording();
+            }}
+            onPointerMove={(e) => {
+              if (!isRecording || lockedRef.current) return;
+              const dx = e.clientX - (pointerStartRef.current?.x ?? e.clientX);
+              const dy = e.clientY - (pointerStartRef.current?.y ?? e.clientY);
+              setSlideX(dx);
+              if (dy < -40) { lockedRef.current = true; setIsLocked(true); }
+            }}
+            onPointerUp={(e) => {
+              if (lockedRef.current) return;
+              const dx = e.clientX - (pointerStartRef.current?.x ?? e.clientX);
+              stopAndSend(dx < -60);
+            }}
+            onPointerCancel={() => { if (!lockedRef.current) stopAndSend(true); }}
+          >
+            <img src="./mic.png" alt="mic" />
+          </button>
           {!isAIChat && !inputDisabled && (
             <button
               ref={suggBtnRef}
@@ -769,11 +884,30 @@ const Chat = () => {
         </div>
 
         {isRecording ? (
-          <div className="recordingBar">
-            <span className="recDot" />
-            <span className="recTime">{fmtRecTime()}</span>
-            <span className="recLabel">Tap mic to send</span>
-          </div>
+          isLocked ? (
+            <div className="recordingBar recordingLocked">
+              <button className="recCancelBtn" onClick={() => stopAndSend(true)} title="Cancel">✕</button>
+              <span className="recDot" />
+              <span className="recTime">{fmtRecTime()}</span>
+              <div className="recWave">
+                {Array.from({ length: 20 }, (_, i) => <div key={i} className="recBar" />)}
+              </div>
+              <button className="recSendBtn" onClick={() => stopAndSend(false)} title="Send">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+              </button>
+            </div>
+          ) : (
+            <div className="recordingBar" style={{ transform: `translateX(${Math.min(0, slideX * 0.25)}px)` }}>
+              <span className="recDot" />
+              <span className="recTime">{fmtRecTime()}</span>
+              <div className="recWave">
+                {Array.from({ length: 20 }, (_, i) => <div key={i} className="recBar" />)}
+              </div>
+              <span className="recSlideHint" style={{ opacity: Math.max(0.2, 1 + slideX / 80) }}>
+                ← slide to cancel
+              </span>
+            </div>
+          )
         ) : (
           <input
             type="text"

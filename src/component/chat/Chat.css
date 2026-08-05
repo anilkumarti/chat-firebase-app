@@ -233,19 +233,65 @@
 }
 
 /* Voice message */
-.chat .center .message .texts .voiceMessage {
-  width: 230px;
+/* ── Voice player ───────────────────────────── */
+.voicePlayer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 220px;
   max-width: 100%;
-  height: 36px;
-  border-radius: var(--r-pill);
-  background: transparent;
-  outline: none;
-  display: block;
+  padding: 6px 4px 2px;
 }
 
-.chat .center .message.own .texts .voiceMessage {
-  filter: invert(0.15) hue-rotate(185deg);
+.vpPlay {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--t), transform var(--t);
+  padding-left: 2px;
 }
+.vpPlay:hover { background: var(--accent-h); transform: scale(1.06); }
+.voicePlayerOwn .vpPlay { background: rgba(255,255,255,0.25); }
+.voicePlayerOwn .vpPlay:hover { background: rgba(255,255,255,0.35); }
+
+.vpBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vpWave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.vpBar {
+  flex: 1;
+  border-radius: 2px;
+  transition: height 0.15s ease, background 0.15s ease;
+  min-height: 3px;
+}
+
+.vpTime {
+  font-size: 11px;
+  color: var(--t3);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.voicePlayerOwn .vpTime { color: rgba(255,255,255,0.6); }
 
 /* Preview image (before sending) */
 .chat .center .message.own .texts > img {
@@ -289,11 +335,35 @@
   background: var(--bg-hover);
 }
 
-.chat .bottom .icons .micActive {
-  opacity: 0.9 !important;
-  background: rgba(240,71,71,0.12) !important;
-  filter: drop-shadow(0 0 5px rgba(240,71,71,.6));
+.chat .bottom .icons .micBtn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--t);
+  touch-action: none;
 }
+.chat .bottom .icons .micBtn img {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  opacity: 0.40;
+  border-radius: 10px;
+  transition: opacity var(--t);
+  pointer-events: none;
+}
+.chat .bottom .icons .micBtn:hover img { opacity: 0.9; }
+.chat .bottom .icons .micBtn.micBtnActive img {
+  opacity: 0.9;
+  filter: drop-shadow(0 0 5px rgba(248,113,113,.7));
+}
+.chat .bottom .icons .micBtn.micBtnActive { background: rgba(248,113,113,0.12); }
 
 .chat .bottom input {
   flex: 1;
@@ -322,17 +392,27 @@
   opacity: 0.4;
 }
 
-/* Recording bar */
+/* ── Recording bar ──────────────────────────── */
 .recordingBar {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: rgba(240,71,71,0.08);
-  border: 1px solid rgba(240,71,71,0.25);
+  gap: 8px;
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.22);
   border-radius: var(--r-pill);
-  padding: 11px 16px;
+  padding: 9px 14px;
   min-width: 0;
+  overflow: hidden;
+  transition: transform 0.05s linear;
+  user-select: none;
+}
+
+.recordingLocked {
+  background: rgba(124,106,245,0.08);
+  border-color: rgba(124,106,245,0.25);
+  gap: 10px;
+  padding: 8px 10px;
 }
 
 .recDot {
@@ -350,7 +430,7 @@
 }
 
 .recTime {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--danger);
   font-variant-numeric: tabular-nums;
@@ -358,13 +438,77 @@
   flex-shrink: 0;
 }
 
-.recLabel {
+.recWave {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+  overflow: hidden;
+}
+
+.recBar {
+  flex: 1;
+  border-radius: 2px;
+  background: var(--danger);
+  opacity: 0.55;
+  animation: recWave 0.6s ease-in-out infinite alternate;
+  min-height: 3px;
+}
+.recBar:nth-child(2n)  { animation-delay: 0.1s; }
+.recBar:nth-child(3n)  { animation-delay: 0.2s; }
+.recBar:nth-child(4n)  { animation-delay: 0.05s; }
+.recBar:nth-child(5n)  { animation-delay: 0.15s; }
+.recBar:nth-child(7n)  { animation-delay: 0.25s; }
+.recBar:nth-child(11n) { animation-delay: 0.3s; }
+.recordingLocked .recBar { background: var(--accent); }
+
+@keyframes recWave {
+  from { height: 18%; }
+  to   { height: 85%; }
+}
+
+.recSlideHint {
   font-size: 12px;
   color: var(--t3);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-shrink: 0;
+  transition: opacity 0.1s;
 }
+
+.recCancelBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(248,113,113,0.4);
+  background: rgba(248,113,113,0.1);
+  color: var(--danger);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--t);
+}
+.recCancelBtn:hover { background: rgba(248,113,113,0.2); }
+
+.recSendBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding-left: 2px;
+  transition: background var(--t), transform var(--t);
+}
+.recSendBtn:hover { background: var(--accent-h); transform: scale(1.05); }
 
 /* Emoji picker */
 .chat .bottom .emoji {
